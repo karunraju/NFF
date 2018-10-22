@@ -23,8 +23,8 @@ class Agent():
       self.env = gym.make('NEL-v0')
     self.an = self.env.action_space.n   # No. of actions in env
     self.epsilon = 0.5
-    self.training_time = 3000           # Training Time 
-    self.df = 0.99                      # Discount Factor
+    self.training_time = 3000000        # Training Time
+    self.df = 0.9                       # Discount Factor
     self.batch_size = 32
 
     # Create Replay Memory and initialize with burn_in transitions
