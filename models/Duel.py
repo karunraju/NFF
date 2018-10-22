@@ -100,14 +100,14 @@ class DuelQNetwork():
   def update_target_network(self):
     self.Qt.load_state_dict(self.Q.state_dict())
 
-  def save_model_weights(self, suffix):
+  def save_model_weights(self, suffix, path='./'):
     # Helper function to save your model / weights.
     state = {
               'epoch': suffix,
               'state_dict': self.Q.state_dict(),
               'optimizer': self.optimizer.state_dict()
             }
-    torch.save(state, './' + str(suffix) + '.dat')
+    torch.save(state, path + str(suffix) + '.dat')
 
   def load_model(self, model_file):
     # Helper function to load an existing model.

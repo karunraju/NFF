@@ -1,4 +1,4 @@
-import sys, time, gym, math, nel
+import sys, os, time, gym, math, nel
 import numpy as np, copy
 import matplotlib.pyplot as plt
 from timeit import default_timer
@@ -34,6 +34,12 @@ class Agent():
     # Create QNetwork instance
     self.net = DuelQNetwork(self.an)
 
+    cur_dir = os.getcwd()
+    self.dump_dir = cur_dir + '/tmp/'
+    # Create output directory
+    if not os.path.exists(self.dump_dir):
+      os.makedirs(self.dump_dir)
+
   def update_epsilon(self):
     ''' Epsilon decay from 0.5 to 0.05 over 100000 iterations. '''
     if self.epsilon <= 0.05:
@@ -54,12 +60,10 @@ class Agent():
     return np.argmax(q_values)
 
   def train(self):
-    stat_epochs = 100
-    dump_epochs = 1000
+    dump_epochs = 100
     train_rewards = []
     test_rewards = []
-    step_test_rewards = []
-    avg_train_reward = 0.0
+    count = 0
 
     cum_reward = 0.0
     elapsed = 0.0
@@ -102,12 +106,25 @@ class Agent():
       cum_reward += reward
       curr_state = nextstate
 
-      print('%f Reward %f' % (default_timer() - start_time, reward))
       if default_timer() - start_time > 100.0:
+        cum_reward = cum_reward/100.0
         elapsed += default_timer() - start_time
-        print('Elapsed Time:%.4f Avg Reward: %.4f'%(elapsed, cum_reward/100.0))
+        print('Elapsed Time:%.4f Avg Reward: %.4f'%(elapsed, cum_reward))
         start_time = default_timer()
+        train_rewards.append(cum_reward)
         cum_reward = 0.0
+        count = count + 1
+
+      if count > 0 and count % 30 == 0:
+        self.net.save_model_weights(count, self.dump_dir)
+
+        x = list(range(len(train_rewards)))
+        plt.plot(x, train_rewards, '-bo')
+        plt.xlabel('Time')
+        plt.ylabel('Average Reward')
+        plt.title('Training Curve')
+        plt.savefig(self.dump_dir + 'Training_Curve_' + str(count) + '.png')
+        plt.close()
 
   def test(self, testing_time=20, model_file=None, capture=False):
     if model_file is not None:

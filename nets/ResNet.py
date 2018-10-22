@@ -7,16 +7,11 @@ class Residual(nn.Module):
     super(Residual, self).__init__()
     self.rl = nn.LeakyReLU(inplace=True)
     self.c1 = nn.Conv2d(ch, ch, 3, stride=1, padding=1)
-    self.b1 = nn.BatchNorm2d(ch)
     self.c2 = nn.Conv2d(ch, ch, 3, stride=1, padding=1)
-    self.b2 = nn.BatchNorm2d(ch)
   
   def forward(self, x):
     out = self.c1(x)
-    out = self.b1(out)
-    out = self.rl(out)
-    out = self.c2(out)
-    out = self.b2(out)
+    out = self.c2(self.rl(out))
     
     out += x
     out = self.rl(out)
