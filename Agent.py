@@ -9,9 +9,10 @@ import torch.optim as optim
 
 from ReplayMemory import ReplayMemory
 from models.Duel import DuelQNetwork
+from models.Double_DQN import DoubleQNetwork
 
 class Agent():
-  def __init__(self, render=False):
+  def __init__(self, render=False, method='Duel'):
 
     # Create an instance of the network itself, as well as the memory.
     # Here is also a good place to set environmental parameters,
@@ -32,7 +33,14 @@ class Agent():
     self.burn_in_memory()
 
     # Create QNetwork instance
-    self.net = DuelQNetwork(self.an)
+    if method == 'Duel':
+      print('Using Duel Network.')
+      self.net = DuelQNetwork(self.an)
+    elif method == 'DoubleQ':
+      print('Using DoubleQ Network.')
+      self.net = DoubleQNetwork(self.an)
+    else:
+      raise NotImplementedError
 
     cur_dir = os.getcwd()
     self.dump_dir = cur_dir + '/tmp/'

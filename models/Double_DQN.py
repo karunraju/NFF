@@ -4,34 +4,31 @@ import torch.optim as optim
 
 from nets.ResNet import ResNet
 
-class DuelNet(nn.Module):
+class DoubleQNet(nn.Module):
   def __init__(self, sz):
-    super(DuelNet, self).__init__()
+    super(DoubleQNet, self).__init__()
     self.res = ResNet()
     self.act = nn.ReLU()
     self.l1 = nn.Linear(256+4, 512)
-    self.A_final_layer = nn.Linear(512, sz)
-    self.V_final_layer = nn.Linear(512, 1)
+    self.l2 = nn.Linear(512, sz)
 
   def forward(self, im, s):
     x = self.res(im)
     x = torch.cat((x, s), dim=1)
     x = self.act(self.l1(x))
-
-    x_A = self.A_final_layer(x)
-    x_V = self.V_final_layer(x)
-    return x_V.expand(x_A.size()) + x_A - torch.mean(x_A)
+    return self.l2(x)
 
 
-class DuelQNetwork():
+
+class DoubleQNetwork():
   def __init__(self, out_size):
     self.C = 100                      # Clone the Q network to target network for every C steps
     self.step_cnt = 0
     self.lr = 0.001                   # Learning Rate
 
     # Q network and target network
-    self.Q = DuelNet(out_size)
-    self.Qt = DuelNet(out_size)
+    self.Q = DoubleQNet(out_size)
+    self.Qt = DoubleQNet(out_size)
 
     # GPU availability
     self.gpu = torch.cuda.is_available()
