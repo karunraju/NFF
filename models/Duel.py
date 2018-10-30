@@ -70,14 +70,18 @@ class DuelQNetwork():
     loss = self.criterion(bO, Yt)
     loss.backward()
     self.optimizer.step()
-
     self.running_loss += loss.item()
+
+    td_errors = (Yt - bO).clone().detach().cpu().numpy()
+
     # Update Target Network for every 'C' steps
     self.step_cnt = self.step_cnt + 1
     if self.step_cnt == self.C:
       self.update_target_network()
       self.step_cnt = 0
       self.running_loss = 0.0
+
+    return td_errors
 
   def get_Q_output(self, Vt, St):
     ''' Returns output from the Q network. '''

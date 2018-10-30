@@ -9,6 +9,7 @@ import torch.optim as optim
 
 import hyperparameters as PARAM
 from ReplayMemory import ReplayMemory
+from replay_buffer.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer, LinearSchedule
 from models.Duel import DuelQNetwork
 from models.Double_DQN import DoubleQNetwork
 
@@ -34,9 +35,22 @@ class Agent():
     self.test_curr_state = None
     self.log_time = 100.0
     self.test_time = 1000.0
+    self.prioritized_replay = PARAM.PRIORITIZED_REPLAY
+    self.prioritized_replay_eps = 1e-6
+    self.prioritized_replay_alpha = 0.6
+    self.prioritized_replay_beta0 = 0.4
+    self.burn_in = PARAM.BURN_IN
 
     # Create Replay Memory and initialize with burn_in transitions
-    self.exp_buff = ReplayMemory(memory_size=PARAM.REPLAY_MEMORY_SIZE)
+    if self.prioritized_replay:
+      self.replay_buffer = PrioritizedReplayBuffer(PARAM.REPLAY_MEMORY_SIZE, alpha=self.prioritized_replay_alpha)
+      self.beta_schedule = LinearSchedule(self.training_time,
+                                          initial_p=self.prioritized_replay_beta0,
+                                          final_p=1.0)
+    else:
+      self.replay_buffer = ReplayBuffer(PARAM.REPLAY_MEMORY_SIZE)
+      self.beta_schedule = None
+
     self.burn_in_memory()
 
     # Create QNetwork instance
@@ -100,10 +114,14 @@ class Agent():
         self.env.render()
 
       # Store Transition
-      self.exp_buff.append((curr_state, action, reward/100, nextstate))
+      self.replay_buffer.add(curr_state, action, reward/100.0, nextstate, 0)
 
       # Sample random minibatch from experience replay
-      batch = self.exp_buff.sample_batch(self.batch_size)
+      if self.prioritized_replay:
+        batch, weights, batch_idxes = self.replay_buffer.sample(self.batch_size, beta=self.beta_schedule.value(i))
+      else:
+        batch = self.replay_buffer.sample(self.batch_size)
+        weights, batch_idxes = np.ones(self.batch_size), None
 
       # Train the Network with mini batches
       xVT, xST = self.get_input_tensors(batch)
@@ -113,7 +131,11 @@ class Agent():
       mT = torch.zeros(self.batch_size, self.an, dtype=torch.uint8)
       for k, tran in enumerate(batch):
         mT[k, tran[1]] = 1
-      self.net.train(xVT, xST, yT, mT)
+      td_errors = self.net.train(xVT, xST, yT, mT, weights)
+
+      if self.prioritized_replay:
+        new_priorities = np.abs(td_errors) + self.prioritized_replay_eps
+        self.replay_buffer.update_priorities(batch_idxes, new_priorities)
 
       # Decay epsilon
       self.update_epsilon()
@@ -194,15 +216,14 @@ class Agent():
   def burn_in_memory(self):
     # Initialize your replay memory with a burn_in number of episodes / transitions.
     cnt = 0
-    burn_in = self.exp_buff.get_burn_in()
-    while burn_in > cnt:
+    while self.burn_in > cnt:
       curr_state = self.env.reset()
-      while burn_in > cnt:
+      while self.burn_in > cnt:
         # Randomly selecting action for burn in. Not sure if this is correct.
         action = self.env.action_space.sample()
         next_state, reward, _, _ = self.env.step(action)
 
-        self.exp_buff.append((curr_state, action, reward/100, next_state))
+        self.replay_buffer.add(curr_state, action, reward/100.0, next_state, 0)
 
         curr_state = next_state
         cnt = cnt + 1

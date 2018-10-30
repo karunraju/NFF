@@ -55,26 +55,32 @@ class DoubleQNetwork():
     for pgroups in self.optimizer.param_groups:
       pgroups['lr'] = pgroups['lr']/10.0
 
-  def train(self, XVt, XSt, Yt, mT):
+  def train(self, XVt, XSt, Yt, mt, wt):
+    wt = torch.from_numpy(wt).float()
     if self.gpu:
-        XVt, XSt, Yt, mT = XVt.cuda(), XSt.cuda(), Yt.cuda(), mT.cuda()
+        XVt, XSt, Yt, mt, wt = XVt.cuda(), XSt.cuda(), Yt.cuda(), mt.cuda(), wt.cuda()
 
     # zero the gradients
     self.optimizer.zero_grad()
 
     # forward + backward + optimize
-    bO = torch.masked_select(self.Q(XVt, XSt), mT)
-    loss = self.criterion(bO, Yt)
+    bO = torch.masked_select(self.Q(XVt, XSt), mt)
+    loss = self.criterion(bO*wt, Yt*wt)
     loss.backward()
-    self.optimizer.step()
 
+    self.optimizer.step()
     self.running_loss += loss.item()
+
+    td_errors = (Yt - bO).clone().detach().cpu().numpy()
+
     # Update Target Network for every 'C' steps
     self.step_cnt = self.step_cnt + 1
     if self.step_cnt == self.C:
       self.update_target_network()
       self.step_cnt = 0
       self.running_loss = 0.0
+
+    return td_errors
 
   def get_Q_output(self, Vt, St):
     ''' Returns output from the Q network. '''
