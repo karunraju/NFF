@@ -1,7 +1,7 @@
 import numpy as np
 class ReplayMemory():
 
-  def __init__(self, memory_size=50000, burn_in=10000):
+  def __init__(self, memory_size=50000, burn_in=20000):
 
     # The memory essentially stores transitions recorder from the agent
     # taking actions in the environment.

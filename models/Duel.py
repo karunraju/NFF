@@ -44,6 +44,7 @@ class DuelQNetwork():
 
     # Update Qt weights with the weights of Q
     self.update_target_network()
+    self.Qt.eval()
 
     # Loss Function and Optimizer
     self.criterion = nn.MSELoss()
@@ -96,6 +97,12 @@ class DuelQNetwork():
       if self.gpu:
         Yt = Yt.cpu()
     return Yt.numpy()
+
+  def set_train(self):
+    self.Q.train()
+
+  def set_eval(self):
+    self.Q.eval()
 
   def update_target_network(self):
     self.Qt.load_state_dict(self.Q.state_dict())
