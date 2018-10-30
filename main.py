@@ -8,14 +8,12 @@ def parse_arguments():
   parser.add_argument('--model', dest='model_file', type=str, help='Model file')
   parser.add_argument('--method', dest='method', type=str, default='DoubleQ',
                       help='Duel or DoubleQ')
-  parser.add_argument('--memsize', dest='memsize', type=int, default=100000,
-                      help='Replay Memory Size')
   return parser.parse_args()
 
 def main():
   args = parse_arguments()
 
-  agent = Agent(render=args.render, method=args.method, memory_size=args.memsize)
+  agent = Agent(render=args.render, method=args.method)
   agent.train()
   #agent.test()
 

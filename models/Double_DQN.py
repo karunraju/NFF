@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+import hyperparameters as PARAM
 from nets.ResNet import ResNet
 
 class DoubleQNet(nn.Module):
@@ -22,9 +23,9 @@ class DoubleQNet(nn.Module):
 
 class DoubleQNetwork():
   def __init__(self, out_size):
-    self.C = 100                      # Clone the Q network to target network for every C steps
+    self.C = PARAM.C                  # Clone the Q network to target network for every C steps
     self.step_cnt = 0
-    self.lr = 0.001                   # Learning Rate
+    self.lr = PARAM.LEARNING_RATE     # Learning Rate
 
     # Q network and target network
     self.Q = DoubleQNet(out_size)

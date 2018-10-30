@@ -7,12 +7,13 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+import hyperparameters as PARAM
 from ReplayMemory import ReplayMemory
 from models.Duel import DuelQNetwork
 from models.Double_DQN import DoubleQNetwork
 
 class Agent():
-  def __init__(self, render=False, method='Duel', memory_size=100000):
+  def __init__(self, render=False, method='Duel'):
 
     # Create an instance of the network itself, as well as the memory.
     # Here is also a good place to set environmental parameters,
@@ -24,18 +25,18 @@ class Agent():
     else:
       self.env = gym.make('NEL-v0')
       self.test_env = gym.make('NEL-v0')
-    self.an = self.env.action_space.n   # No. of actions in env
+    self.an = self.env.action_space.n               # No. of actions in env
     self.epsilon = 0.5
-    self.training_time = 3000000        # Training Time
-    self.df = 0.9                       # Discount Factor
-    self.batch_size = 32
+    self.training_time = PARAM.TRAINING_TIME        # Training Time
+    self.df = PARAM.DISCOUNT_FACTOR                 # Discount Factor
+    self.batch_size = PARAM.BATCH_SIZE
     self.method = method
     self.test_curr_state = None
     self.log_time = 100.0
     self.test_time = 1000.0
 
     # Create Replay Memory and initialize with burn_in transitions
-    self.exp_buff = ReplayMemory(memory_size=memory_size)
+    self.exp_buff = ReplayMemory(memory_size=PARAM.REPLAY_MEMORY_SIZE)
     self.burn_in_memory()
 
     # Create QNetwork instance
@@ -74,7 +75,6 @@ class Agent():
     return np.argmax(q_values)
 
   def train(self):
-    dump_epochs = 100
     train_rewards = []
     test_rewards = []
     count = 0
@@ -125,7 +125,7 @@ class Agent():
         cum_reward = cum_reward/float(self.log_time)
         elapsed += default_timer() - start_time
         start_time = default_timer()
-        train_rewards.append(cum_reward*100)
+        train_rewards.append(cum_reward)
         cum_reward = 0.0
         print('Elapsed Time:%.4f Train Reward: %.4f' % (elapsed, train_rewards[-1]))
 
