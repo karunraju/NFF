@@ -100,7 +100,7 @@ class Agent():
         self.env.render()
 
       # Store Transition
-      self.exp_buff.append((curr_state, action, reward, nextstate))
+      self.exp_buff.append((curr_state, action, reward/100, nextstate))
 
       # Sample random minibatch from experience replay
       batch = self.exp_buff.sample_batch(self.batch_size)
@@ -125,7 +125,7 @@ class Agent():
         cum_reward = cum_reward/float(self.log_time)
         elapsed += default_timer() - start_time
         start_time = default_timer()
-        train_rewards.append(cum_reward)
+        train_rewards.append(cum_reward*100)
         cum_reward = 0.0
         print('Elapsed Time:%.4f Train Reward: %.4f' % (elapsed, train_rewards[-1]))
 
@@ -202,7 +202,7 @@ class Agent():
         action = self.env.action_space.sample()
         next_state, reward, _, _ = self.env.step(action)
 
-        self.exp_buff.append((curr_state, action, reward, next_state))
+        self.exp_buff.append((curr_state, action, reward/100, next_state))
 
         curr_state = next_state
         cnt = cnt + 1
