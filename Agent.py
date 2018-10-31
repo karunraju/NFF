@@ -93,6 +93,7 @@ class Agent():
     train_rewards = []
     test_rewards = []
     count = 0
+    steps = 0
 
     cum_reward = 0.0
     elapsed = 0.0
@@ -111,6 +112,7 @@ class Agent():
 
       # Executing action in simulator
       nextstate, reward, _, _ = self.env.step(action)
+      steps = steps + 1
       if self.render:
         self.env.render()
 
@@ -153,7 +155,8 @@ class Agent():
         start_time = default_timer()
         train_rewards.append(cum_reward)
         cum_reward = 0.0
-        print('Elapsed Time:%.4f Train Reward: %.4f' % (elapsed, train_rewards[-1]))
+        print('Elapsed Time:%.4f Steps:%d Train Reward: %.4f' % (elapsed, steps, train_rewards[-1]))
+        steps = 0
 
         x = list(range(len(train_rewards)))
         plt.plot(x, train_rewards, '-bo')
