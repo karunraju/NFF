@@ -9,16 +9,30 @@ class DoubleQNet(nn.Module):
   def __init__(self, sz):
     super(DoubleQNet, self).__init__()
     self.res = ResNet()
-    self.act = nn.ReLU()
-    self.l1 = nn.Linear(256+4, 512)
-    self.l2 = nn.Linear(512, sz)
+    act = nn.ReLU()
+    l1 = nn.Linear(256+4, 512)
+    l2 = nn.Linear(512, sz)
+    self.seq = nn.Sequential(l1, act, l2)
+
+  def initialize(self):
+    for layer in self.res:
+			try:
+				nn.init.xavier_uniform_(layer.weight.data)
+				nn.init.constant_(layer.bias.data, 0)
+			except:
+				pass
+
+    for layer in self.seq:
+			try:
+				nn.init.xavier_uniform_(layer.weight.data)
+				nn.init.constant_(layer.bias.data, 0)
+			except:
+				pass
 
   def forward(self, im, s):
     x = self.res(im)
     x = torch.cat((x, s), dim=1)
-    x = self.act(self.l1(x))
-    return self.l2(x)
-
+    return self.seq(x)
 
 class DoubleQNetwork():
   def __init__(self, out_size):
