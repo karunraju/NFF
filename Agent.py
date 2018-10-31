@@ -37,14 +37,15 @@ class Agent():
     self.test_time = 1000.0
     self.prioritized_replay = PARAM.PRIORITIZED_REPLAY
     self.prioritized_replay_eps = 1e-6
-    self.prioritized_replay_alpha = 0.6
+    #self.prioritized_replay_alpha = 0.6
+    self.prioritized_replay_alpha = 0.9
     self.prioritized_replay_beta0 = 0.4
     self.burn_in = PARAM.BURN_IN
 
     # Create Replay Memory and initialize with burn_in transitions
     if self.prioritized_replay:
       self.replay_buffer = PrioritizedReplayBuffer(PARAM.REPLAY_MEMORY_SIZE, alpha=self.prioritized_replay_alpha)
-      self.beta_schedule = LinearSchedule(self.training_time,
+      self.beta_schedule = LinearSchedule(float(self.training_time),
                                           initial_p=self.prioritized_replay_beta0,
                                           final_p=1.0)
     else:

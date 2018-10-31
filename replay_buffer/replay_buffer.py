@@ -90,8 +90,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
     super().add(obs_t, action, reward, obs_tp1, done)
     #self._it_sum[idx] = self._max_priority ** self._alpha
     #self._it_min[idx] = self._max_priority ** self._alpha
-    self._it_sum[idx] = (reward + 0.01) ** self._alpha
-    self._it_min[idx] = (reward + 0.01) ** self._alpha
+    self._it_sum[idx] = (reward + 0.01) * self._alpha
+    self._it_min[idx] = (reward + 0.01) * self._alpha
 
 
   def _sample_proportional(self, batch_size):
@@ -169,8 +169,8 @@ class PrioritizedReplayBuffer(ReplayBuffer):
     for idx, priority in zip(idxes, priorities):
       assert priority > 0
       assert 0 <= idx < len(self._storage)
-      self._it_sum[idx] = priority ** self._alpha
-      self._it_min[idx] = priority ** self._alpha
+      self._it_sum[idx] = priority * self._alpha
+      self._it_min[idx] = priority * self._alpha
 
       self._max_priority = max(self._max_priority, priority)
 
