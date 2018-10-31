@@ -1,7 +1,6 @@
 import sys, os, time, gym, math, nel
 import numpy as np, copy
 import matplotlib.pyplot as plt
-from timeit import default_timer
 
 import torch
 import torch.nn as nn
@@ -69,6 +68,8 @@ class Agent():
     # Create output directory
     if not os.path.exists(self.dump_dir):
       os.makedirs(self.dump_dir)
+    self.train_file = open(self.dump_dir + 'train_rewards.txt', 'w')
+    self.test_file = open(self.dump_dir + 'test_rewards.txt', 'w')
 
   def update_epsilon(self):
     ''' Epsilon decay from 0.5 to 0.05 over 100000 iterations. '''
@@ -94,14 +95,13 @@ class Agent():
     test_rewards = []
     count = 0
     steps = 0
+    test_steps = 0
 
     cum_reward = 0.0
     elapsed = 0.0
     curr_state = self.env.reset()
     if self.render:
       self.env.render()
-    start_time = default_timer()
-    test_start_time = default_timer()
     for i in range(self.training_time):
       # Get q_values based on the current state
       Vt, St = self.get_input_tensor(curr_state)
@@ -113,6 +113,7 @@ class Agent():
       # Executing action in simulator
       nextstate, reward, _, _ = self.env.step(action)
       steps = steps + 1
+      test_steps = test_steps + 1
       if self.render:
         self.env.render()
 
@@ -149,13 +150,14 @@ class Agent():
       cum_reward += reward
       curr_state = nextstate
 
-      if default_timer() - start_time > self.log_time:
+      if steps == 100:
         cum_reward = cum_reward/float(self.log_time)
-        elapsed += default_timer() - start_time
-        start_time = default_timer()
         train_rewards.append(cum_reward)
+        self.train_file.write(str(cum_reward))
+        self.train_file.write('\n')
+        self.train_file.flush()
         cum_reward = 0.0
-        print('Elapsed Time:%.4f Steps:%d Train Reward: %.4f' % (elapsed, steps, train_rewards[-1]))
+        print('Train Reward: %.4f' % (train_rewards[-1]))
         steps = 0
 
         x = list(range(len(train_rewards)))
@@ -167,14 +169,15 @@ class Agent():
         plt.close()
 
 
-      if default_timer() - test_start_time > self.test_time:
+      if test_steps == 500:
         self.net.set_eval()
         test_rewards.append(self.test())
-        test_start_time = default_timer()
-        start_time = default_timer()            # Resetting train time after test
+        self.test_file.write(str(test_rewards[-1]))
+        self.test_file.write('\n')
+        self.test_file.flush()
         self.net.set_train()
         count = count + 1
-        print('\nElapsed Time:%.4f Test Reward: %.4f\n' % (elapsed, test_rewards[-1]))
+        print('\nTest Reward: %.4f\n' % (test_rewards[-1]))
 
         x = list(range(len(test_rewards)))
         plt.plot(x, test_rewards, '-bo')
@@ -184,11 +187,11 @@ class Agent():
         plt.savefig(self.dump_dir + 'Testing_Curve_' + self.method + '.png')
         plt.close()
 
-      if count > 0 and count % 10 == 0:
+      if count > 0 and count % 30 == 0:
         self.net.save_model_weights(count, self.dump_dir)
 
 
-  def test(self, testing_time=100, model_file=None, capture=False):
+  def test(self, testing_steps=100, model_file=None, capture=False):
     if model_file is not None:
       self.net.load_model(model_file)
 
@@ -202,7 +205,7 @@ class Agent():
     if self.render:
       self.test_env.render()
     cum_reward = 0.0
-    for i in range(testing_time):
+    for i in range(testing_steps):
       # Initializing the episodes
       Vt, St = self.get_input_tensor(self.test_curr_state)
       q_values = self.net.get_Q_output(Vt, St)
@@ -215,7 +218,7 @@ class Agent():
 
       cum_reward += reward
       self.test_curr_state = nextstate
-    avg_reward = cum_reward/float(testing_time)
+    avg_reward = cum_reward/float(testing_steps)
     rewards.append(avg_reward)
 
     return avg_reward
