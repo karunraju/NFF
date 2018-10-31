@@ -178,6 +178,7 @@ class Agent():
         self.net.set_train()
         count = count + 1
         print('\nTest Reward: %.4f\n' % (test_rewards[-1]))
+        test_steps = 0
 
         x = list(range(len(test_rewards)))
         plt.plot(x, test_rewards, '-bo')
