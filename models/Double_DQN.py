@@ -20,7 +20,6 @@ class DoubleQNet(nn.Module):
     return self.l2(x)
 
 
-
 class DoubleQNetwork():
   def __init__(self, out_size):
     self.C = PARAM.C                  # Clone the Q network to target network for every C steps
@@ -67,6 +66,8 @@ class DoubleQNetwork():
     bO = torch.masked_select(self.Q(XVt, XSt), mt)
     loss = self.criterion(bO*wt, Yt*wt)
     loss.backward()
+
+    torch.nn.utils.clip_grad_value_(self.Q.parameters(), PARAM.CLIP_VALUE)
 
     self.optimizer.step()
     self.running_loss += loss.item()
