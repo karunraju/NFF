@@ -13,6 +13,7 @@ class DoubleQNet(nn.Module):
     l1 = nn.Linear(256+4, 512)
     l2 = nn.Linear(512, sz)
     self.seq = nn.Sequential(l1, act, l2)
+    self.initialize()
 
   def initialize(self):
     for layer in self.res:
