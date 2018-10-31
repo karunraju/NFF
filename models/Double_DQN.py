@@ -16,13 +16,6 @@ class DoubleQNet(nn.Module):
     self.initialize()
 
   def initialize(self):
-    for layer in self.res:
-      try:
-        nn.init.xavier_uniform_(layer.weight.data)
-        nn.init.constant_(layer.bias.data, 0)
-      except:
-        pass
-
     for layer in self.seq:
       try:
         nn.init.xavier_uniform_(layer.weight.data)
