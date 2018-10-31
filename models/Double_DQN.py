@@ -16,18 +16,18 @@ class DoubleQNet(nn.Module):
 
   def initialize(self):
     for layer in self.res:
-			try:
-				nn.init.xavier_uniform_(layer.weight.data)
-				nn.init.constant_(layer.bias.data, 0)
-			except:
-				pass
+      try:
+        nn.init.xavier_uniform_(layer.weight.data)
+        nn.init.constant_(layer.bias.data, 0)
+      except:
+        pass
 
     for layer in self.seq:
-			try:
-				nn.init.xavier_uniform_(layer.weight.data)
-				nn.init.constant_(layer.bias.data, 0)
-			except:
-				pass
+      try:
+        nn.init.xavier_uniform_(layer.weight.data)
+        nn.init.constant_(layer.bias.data, 0)
+      except:
+        pass
 
   def forward(self, im, s):
     x = self.res(im)
