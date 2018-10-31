@@ -136,10 +136,10 @@ class Agent():
 
       if self.prioritized_replay:
         #new_priorities = np.abs(td_errors) + self.prioritized_replay_eps
-        new_priorities = []
-        for i, tran in enumerate(batch):
-          new_priorities.append(tran[2] + self.prioritized_replay_eps)
-        self.replay_buffer.update_priorities(batch_idxes, new_priorities)
+        #new_priorities = []
+        #for i, tran in enumerate(batch):
+        #  new_priorities.append(tran[2] + self.prioritized_replay_eps)
+        self.replay_buffer.update_priorities(batch_idxes, weights)
 
       # Decay epsilon
       self.update_epsilon()
