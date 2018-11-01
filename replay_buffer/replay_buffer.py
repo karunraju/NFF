@@ -3,8 +3,10 @@
 """
 import random
 import numpy as np
-
-from replay_buffer.segment_tree import SumSegmentTree, MinSegmentTree
+try:
+  from replay_buffer.segment_tree import SumSegmentTree, MinSegmentTree
+except:
+  from segment_tree import SumSegmentTree, MinSegmentTree
 
 class ReplayBuffer(object):
   def __init__(self, size):
