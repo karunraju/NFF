@@ -8,11 +8,11 @@ from nets.ResNet import ResNet
 class DoubleQNet(nn.Module):
   def __init__(self, sz):
     super(DoubleQNet, self).__init__()
-    act = nn.PReLU()
+    self.act = nn.ReLU
     imageSize=11*11
-    self.layers = nn.Sequential(    nn.Linear(imageSize*3,imageSize*3), self.act(),
-                                    nn.Linear(imageSize*3,imageSize*2),   self.act()
-                                    nn.Linear(imageSize*2,imageSize),   self.act()
+    self.layers = nn.Sequential(    nn.Linear(4+imageSize*3,imageSize*3), self.act(),
+                                    nn.Linear(imageSize*3,imageSize*2),   self.act(),
+                                    nn.Linear(imageSize*2,imageSize),     self.act(),
                                     nn.Linear(imageSize,sz)
                                 )
 
@@ -27,6 +27,8 @@ class DoubleQNet(nn.Module):
         pass
 
   def forward(self, im, s):
+    im=im.view(im.size(0),-1)
+    x=torch.cat([im,s],dim=1)
     return self.layers(x)
 
 class DoubleQNetwork():
