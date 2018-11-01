@@ -24,7 +24,7 @@ class Agent():
       self.env = gym.make('NEL-render-v0')
     else:
       self.env = gym.make('NEL-v0')
-    self.test_env = gym.make('NEL-v0')
+    #self.test_env = gym.make('NEL-v0')
     self.an = self.env.action_space.n               # No. of actions in env
     self.epsilon = 0.5
     self.training_time = PARAM.TRAINING_TIME        # Training Time
@@ -176,24 +176,24 @@ class Agent():
         plot(self.dump_dir + self.method, train_rewards)
 
 
-      if test_steps == 500:
-        self.net.set_eval()
-        test_rewards.append(self.test())
-        self.test_file.write(str(test_rewards[-1]))
-        self.test_file.write('\n')
-        self.test_file.flush()
-        self.net.set_train()
-        count = count + 1
-        print('\nTest Reward: %.4f\n' % (test_rewards[-1]))
-        test_steps = 0
-
-        x = list(range(len(test_rewards)))
-        plt.plot(x, test_rewards, '-bo')
-        plt.xlabel('Time')
-        plt.ylabel('Average Reward')
-        plt.title('Testing Curve')
-        plt.savefig(self.dump_dir + 'Testing_Curve_' + self.method + '.png')
-        plt.close()
+#      if test_steps == 500:
+#        self.net.set_eval()
+#        test_rewards.append(self.test())
+#        self.test_file.write(str(test_rewards[-1]))
+#        self.test_file.write('\n')
+#        self.test_file.flush()
+#        self.net.set_train()
+#        count = count + 1
+#        print('\nTest Reward: %.4f\n' % (test_rewards[-1]))
+#        test_steps = 0
+#
+#        x = list(range(len(test_rewards)))
+#        plt.plot(x, test_rewards, '-bo')
+#        plt.xlabel('Time')
+#        plt.ylabel('Average Reward')
+#        plt.title('Testing Curve')
+#        plt.savefig(self.dump_dir + 'Testing_Curve_' + self.method + '.png')
+#        plt.close()
 
       if count > 0 and count % 30 == 0:
         self.net.save_model_weights(count, self.dump_dir)
