@@ -21,10 +21,9 @@ class Agent():
     self.render = render
     if render:
       self.env = gym.make('NEL-render-v0')
-      self.test_env = gym.make('NEL-render-v0') # Test environment
     else:
       self.env = gym.make('NEL-v0')
-      self.test_env = gym.make('NEL-v0')
+    self.test_env = gym.make('NEL-v0')
     self.an = self.env.action_space.n               # No. of actions in env
     self.epsilon = 0.5
     self.training_time = PARAM.TRAINING_TIME        # Training Time
@@ -37,7 +36,7 @@ class Agent():
     self.prioritized_replay = PARAM.PRIORITIZED_REPLAY
     self.prioritized_replay_eps = 1e-6
     #self.prioritized_replay_alpha = 0.6
-    self.prioritized_replay_alpha = 0.9
+    self.prioritized_replay_alpha = 0.8
     self.prioritized_replay_beta0 = 0.4
     self.burn_in = PARAM.BURN_IN
 
@@ -77,13 +76,13 @@ class Agent():
       self.epsilon = 0.05
       return
 
-    self.epsilon = self.epsilon - (0.5 - 0.1)/10000000.0
+    self.epsilon = self.epsilon - (0.5 - 0.1)/200000.0
 
   def epsilon_greedy_policy(self, q_values, epsilon):
     # Creating epsilon greedy probabilities to sample from.
     val = np.random.rand(1)
     if val <= epsilon:
-      return np.random.randint(q_values.shape[0])
+      return np.random.randint(q_values.shape[1])
     return np.argmax(q_values)
 
   def greedy_policy(self, q_values):
@@ -100,6 +99,7 @@ class Agent():
     cum_reward = 0.0
     elapsed = 0.0
     curr_state = self.env.reset()
+    prev_action = -1
     if self.render:
       self.env.render()
     for i in range(self.training_time):
@@ -109,6 +109,8 @@ class Agent():
 
       # Selecting an action based on the policy
       action = self.epsilon_greedy_policy(q_values, self.epsilon)
+      #if not curr_state['moved'] and action == prev_action and self.epsilon > 0.1:
+      #  action = self.epsilon_greedy_policy(q_values, 0.5)
 
       # Executing action in simulator
       nextstate, reward, _, _ = self.env.step(action)
@@ -118,7 +120,9 @@ class Agent():
         self.env.render()
 
       # Store Transition
-      self.replay_buffer.add(curr_state, action, reward/100.0, nextstate, 0)
+      if nextstate['moved'] or prev_action != action:
+        self.replay_buffer.add(curr_state, action, reward/100.0, nextstate, 0)
+      prev_action = action
 
       # Sample random minibatch from experience replay
       if self.prioritized_replay:
@@ -203,8 +207,8 @@ class Agent():
     rewards = []
 
     self.test_curr_state = self.test_env.reset()
-    if self.render:
-      self.test_env.render()
+    #if self.render:
+    #  self.test_env.render()
     cum_reward = 0.0
     for i in range(testing_steps):
       # Initializing the episodes
@@ -214,8 +218,8 @@ class Agent():
 
       # Executing action in simulator
       nextstate, reward, _, _ = self.test_env.step(action)
-      if self.render:
-        self.test_env.render()
+      #if self.render:
+      #  self.test_env.render()
 
       cum_reward += reward
       self.test_curr_state = nextstate
