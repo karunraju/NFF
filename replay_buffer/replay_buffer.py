@@ -4,7 +4,7 @@
 import random
 import numpy as np
 
-from replay_buffer.segment_tree import SumSegmentTree, MinSegmentTree
+from segment_tree import SumSegmentTree, MinSegmentTree
 
 class ReplayBuffer(object):
   def __init__(self, size):
@@ -87,7 +87,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
   def add(self, obs_t, action, reward, obs_tp1, done):
     """See ReplayBuffer.store_effect"""
     idx = self._next_idx
-    super().add(obs_t, action, reward, obs_tp1, done)
+    super(PrioritizedReplayBuffer, self).add(obs_t, action, reward, obs_tp1, done)
     #self._it_sum[idx] = self._max_priority ** self._alpha
     #self._it_min[idx] = self._max_priority ** self._alpha
     self._it_sum[idx] = reward + 0.01

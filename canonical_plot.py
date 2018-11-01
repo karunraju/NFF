@@ -17,7 +17,10 @@ def plot(prefix, rewards):
     for logscale in [True, False]:
       if logscale:
         plt.yscale('log')
-      plt.plot(x_vals+1, y_vals)
+      try:
+      	plt.plot(x_vals+1, y_vals)  #Cannot log scale without positive values error in py2
+      except:
+        pass
       plt.xlabel('Unit of training (Actions in W1, Episodes in W2)')
       plt.ylabel(axis_label)
       plt.grid(which='Both')
