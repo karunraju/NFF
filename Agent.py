@@ -1,18 +1,20 @@
 import sys, os, time, gym, math, nel
 import numpy as np, copy
 import matplotlib.pyplot as plt
-from timeit import default_timer
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
+import hyperparameters as PARAM
 from ReplayMemory import ReplayMemory
+from replay_buffer.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer, LinearSchedule
 from models.Duel import DuelQNetwork
 from models.Double_DQN import DoubleQNetwork
+from canonical_plot import plot
 
 class Agent():
-  def __init__(self, render=False, method='Duel', memory_size=100000):
+  def __init__(self, render=False, method='Duel'):
 
     # Create an instance of the network itself, as well as the memory.
     # Here is also a good place to set environmental parameters,
@@ -20,22 +22,35 @@ class Agent():
     self.render = render
     if render:
       self.env = gym.make('NEL-render-v0')
-      self.test_env = gym.make('NEL-render-v0') # Test environment
     else:
       self.env = gym.make('NEL-v0')
-      self.test_env = gym.make('NEL-v0')
-    self.an = self.env.action_space.n   # No. of actions in env
+    self.test_env = gym.make('NEL-v0')
+    self.an = self.env.action_space.n               # No. of actions in env
     self.epsilon = 0.5
-    self.training_time = 3000000        # Training Time
-    self.df = 0.9                       # Discount Factor
-    self.batch_size = 32
+    self.training_time = PARAM.TRAINING_TIME        # Training Time
+    self.df = PARAM.DISCOUNT_FACTOR                 # Discount Factor
+    self.batch_size = PARAM.BATCH_SIZE
     self.method = method
     self.test_curr_state = None
     self.log_time = 100.0
     self.test_time = 1000.0
+    self.prioritized_replay = PARAM.PRIORITIZED_REPLAY
+    self.prioritized_replay_eps = 1e-6
+    #self.prioritized_replay_alpha = 0.6
+    self.prioritized_replay_alpha = 0.8
+    self.prioritized_replay_beta0 = 0.4
+    self.burn_in = PARAM.BURN_IN
 
     # Create Replay Memory and initialize with burn_in transitions
-    self.exp_buff = ReplayMemory(memory_size=memory_size)
+    if self.prioritized_replay:
+      self.replay_buffer = PrioritizedReplayBuffer(PARAM.REPLAY_MEMORY_SIZE, alpha=self.prioritized_replay_alpha)
+      self.beta_schedule = LinearSchedule(float(self.training_time),
+                                          initial_p=self.prioritized_replay_beta0,
+                                          final_p=1.0)
+    else:
+      self.replay_buffer = ReplayBuffer(PARAM.REPLAY_MEMORY_SIZE)
+      self.beta_schedule = None
+
     self.burn_in_memory()
 
     # Create QNetwork instance
@@ -53,6 +68,8 @@ class Agent():
     # Create output directory
     if not os.path.exists(self.dump_dir):
       os.makedirs(self.dump_dir)
+    self.train_file = open(self.dump_dir + 'train_rewards.txt', 'w')
+    self.test_file = open(self.dump_dir + 'test_rewards.txt', 'w')
 
   def update_epsilon(self):
     ''' Epsilon decay from 0.5 to 0.05 over 100000 iterations. '''
@@ -60,13 +77,13 @@ class Agent():
       self.epsilon = 0.05
       return
 
-    self.epsilon = self.epsilon - (0.5 - 0.1)/10000000.0
+    self.epsilon = self.epsilon - (0.5 - 0.1)/200000.0
 
   def epsilon_greedy_policy(self, q_values, epsilon):
     # Creating epsilon greedy probabilities to sample from.
     val = np.random.rand(1)
     if val <= epsilon:
-      return np.random.randint(q_values.shape[0])
+      return np.random.randint(q_values.shape[1])
     return np.argmax(q_values)
 
   def greedy_policy(self, q_values):
@@ -74,18 +91,18 @@ class Agent():
     return np.argmax(q_values)
 
   def train(self):
-    dump_epochs = 100
     train_rewards = []
     test_rewards = []
     count = 0
+    steps = 0
+    test_steps = 0
 
     cum_reward = 0.0
     elapsed = 0.0
     curr_state = self.env.reset()
+    prev_action = -1
     if self.render:
       self.env.render()
-    start_time = default_timer()
-    test_start_time = default_timer()
     for i in range(self.training_time):
       # Get q_values based on the current state
       Vt, St = self.get_input_tensor(curr_state)
@@ -93,17 +110,27 @@ class Agent():
 
       # Selecting an action based on the policy
       action = self.epsilon_greedy_policy(q_values, self.epsilon)
+      #if not curr_state['moved'] and action == prev_action and self.epsilon > 0.1:
+      #  action = self.epsilon_greedy_policy(q_values, 0.5)
 
       # Executing action in simulator
       nextstate, reward, _, _ = self.env.step(action)
+      steps = steps + 1
+      test_steps = test_steps + 1
       if self.render:
         self.env.render()
 
       # Store Transition
-      self.exp_buff.append((curr_state, action, reward/100, nextstate))
+      if nextstate['moved'] or prev_action != action:
+        self.replay_buffer.add(curr_state, action, reward/100.0, nextstate, 0)
+      prev_action = action
 
       # Sample random minibatch from experience replay
-      batch = self.exp_buff.sample_batch(self.batch_size)
+      if self.prioritized_replay:
+        batch, weights, batch_idxes = self.replay_buffer.sample(self.batch_size, beta=self.beta_schedule.value(i))
+      else:
+        batch = self.replay_buffer.sample(self.batch_size)
+        weights, batch_idxes = np.ones(self.batch_size), None
 
       # Train the Network with mini batches
       xVT, xST = self.get_input_tensors(batch)
@@ -113,7 +140,14 @@ class Agent():
       mT = torch.zeros(self.batch_size, self.an, dtype=torch.uint8)
       for k, tran in enumerate(batch):
         mT[k, tran[1]] = 1
-      self.net.train(xVT, xST, yT, mT)
+      td_errors = self.net.train(xVT, xST, yT, mT, weights)
+
+      if self.prioritized_replay:
+        #new_priorities = np.abs(td_errors) + self.prioritized_replay_eps
+        #new_priorities = []
+        #for i, tran in enumerate(batch):
+        #  new_priorities.append(tran[2] + self.prioritized_replay_eps)
+        self.replay_buffer.update_priorities(batch_idxes, weights)
 
       # Decay epsilon
       self.update_epsilon()
@@ -121,13 +155,15 @@ class Agent():
       cum_reward += reward
       curr_state = nextstate
 
-      if default_timer() - start_time > self.log_time:
+      if steps == 100:
         cum_reward = cum_reward/float(self.log_time)
-        elapsed += default_timer() - start_time
-        start_time = default_timer()
-        train_rewards.append(cum_reward*100)
+        train_rewards.append(cum_reward)
+        self.train_file.write(str(cum_reward))
+        self.train_file.write('\n')
+        self.train_file.flush()
         cum_reward = 0.0
-        print('Elapsed Time:%.4f Train Reward: %.4f' % (elapsed, train_rewards[-1]))
+        print('Train Reward: %.4f' % (train_rewards[-1]))
+        steps = 0
 
         x = list(range(len(train_rewards)))
         plt.plot(x, train_rewards, '-bo')
@@ -137,15 +173,19 @@ class Agent():
         plt.savefig(self.dump_dir + 'Training_Curve_' + self.method + '.png')
         plt.close()
 
+        plot(self.dump_dir + self.method, train_rewards)
 
-      if default_timer() - test_start_time > self.test_time:
+
+      if test_steps == 500:
         self.net.set_eval()
         test_rewards.append(self.test())
-        test_start_time = default_timer()
-        start_time = default_timer()            # Resetting train time after test
+        self.test_file.write(str(test_rewards[-1]))
+        self.test_file.write('\n')
+        self.test_file.flush()
         self.net.set_train()
         count = count + 1
-        print('\nElapsed Time:%.4f Test Reward: %.4f\n' % (elapsed, test_rewards[-1]))
+        print('\nTest Reward: %.4f\n' % (test_rewards[-1]))
+        test_steps = 0
 
         x = list(range(len(test_rewards)))
         plt.plot(x, test_rewards, '-bo')
@@ -155,11 +195,11 @@ class Agent():
         plt.savefig(self.dump_dir + 'Testing_Curve_' + self.method + '.png')
         plt.close()
 
-      if count > 0 and count % 10 == 0:
+      if count > 0 and count % 30 == 0:
         self.net.save_model_weights(count, self.dump_dir)
 
 
-  def test(self, testing_time=100, model_file=None, capture=False):
+  def test(self, testing_steps=100, model_file=None, capture=False):
     if model_file is not None:
       self.net.load_model(model_file)
 
@@ -170,10 +210,10 @@ class Agent():
     rewards = []
 
     self.test_curr_state = self.test_env.reset()
-    if self.render:
-      self.test_env.render()
+    #if self.render:
+    #  self.test_env.render()
     cum_reward = 0.0
-    for i in range(testing_time):
+    for i in range(testing_steps):
       # Initializing the episodes
       Vt, St = self.get_input_tensor(self.test_curr_state)
       q_values = self.net.get_Q_output(Vt, St)
@@ -181,12 +221,12 @@ class Agent():
 
       # Executing action in simulator
       nextstate, reward, _, _ = self.test_env.step(action)
-      if self.render:
-        self.test_env.render()
+      #if self.render:
+      #  self.test_env.render()
 
       cum_reward += reward
       self.test_curr_state = nextstate
-    avg_reward = cum_reward/float(testing_time)
+    avg_reward = cum_reward/float(testing_steps)
     rewards.append(avg_reward)
 
     return avg_reward
@@ -194,15 +234,14 @@ class Agent():
   def burn_in_memory(self):
     # Initialize your replay memory with a burn_in number of episodes / transitions.
     cnt = 0
-    burn_in = self.exp_buff.get_burn_in()
-    while burn_in > cnt:
+    while self.burn_in > cnt:
       curr_state = self.env.reset()
-      while burn_in > cnt:
+      while self.burn_in > cnt:
         # Randomly selecting action for burn in. Not sure if this is correct.
         action = self.env.action_space.sample()
         next_state, reward, _, _ = self.env.step(action)
 
-        self.exp_buff.append((curr_state, action, reward/100, next_state))
+        self.replay_buffer.add(curr_state, action, reward/100.0, next_state, 0)
 
         curr_state = next_state
         cnt = cnt + 1

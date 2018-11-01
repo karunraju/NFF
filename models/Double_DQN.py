@@ -2,29 +2,37 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+import hyperparameters as PARAM
 from nets.ResNet import ResNet
 
 class DoubleQNet(nn.Module):
   def __init__(self, sz):
     super(DoubleQNet, self).__init__()
     self.res = ResNet()
-    self.act = nn.ReLU()
-    self.l1 = nn.Linear(256+4, 512)
-    self.l2 = nn.Linear(512, sz)
+    act = nn.ReLU()
+    l1 = nn.Linear(256+4, 512)
+    l2 = nn.Linear(512, sz)
+    self.seq = nn.Sequential(l1, act, l2)
+    self.initialize()
+
+  def initialize(self):
+    for layer in self.seq:
+      try:
+        nn.init.xavier_uniform_(layer.weight.data)
+        nn.init.constant_(layer.bias.data, 0)
+      except:
+        pass
 
   def forward(self, im, s):
     x = self.res(im)
     x = torch.cat((x, s), dim=1)
-    x = self.act(self.l1(x))
-    return self.l2(x)
-
-
+    return self.seq(x)
 
 class DoubleQNetwork():
   def __init__(self, out_size):
-    self.C = 100                      # Clone the Q network to target network for every C steps
+    self.C = PARAM.C                  # Clone the Q network to target network for every C steps
     self.step_cnt = 0
-    self.lr = 0.001                   # Learning Rate
+    self.lr = PARAM.LEARNING_RATE     # Learning Rate
 
     # Q network and target network
     self.Q = DoubleQNet(out_size)
@@ -54,26 +62,34 @@ class DoubleQNetwork():
     for pgroups in self.optimizer.param_groups:
       pgroups['lr'] = pgroups['lr']/10.0
 
-  def train(self, XVt, XSt, Yt, mT):
+  def train(self, XVt, XSt, Yt, mt, wt):
+    wt = torch.from_numpy(wt).float()
     if self.gpu:
-        XVt, XSt, Yt, mT = XVt.cuda(), XSt.cuda(), Yt.cuda(), mT.cuda()
+        XVt, XSt, Yt, mt, wt = XVt.cuda(), XSt.cuda(), Yt.cuda(), mt.cuda(), wt.cuda()
 
     # zero the gradients
     self.optimizer.zero_grad()
 
     # forward + backward + optimize
-    bO = torch.masked_select(self.Q(XVt, XSt), mT)
-    loss = self.criterion(bO, Yt)
+    bO = torch.masked_select(self.Q(XVt, XSt), mt)
+    loss = self.criterion(bO*wt, Yt*wt)
     loss.backward()
-    self.optimizer.step()
 
+    torch.nn.utils.clip_grad_value_(self.Q.parameters(), PARAM.CLIP_VALUE)
+
+    self.optimizer.step()
     self.running_loss += loss.item()
+
+    td_errors = (Yt - bO).clone().detach().cpu().numpy()
+
     # Update Target Network for every 'C' steps
     self.step_cnt = self.step_cnt + 1
     if self.step_cnt == self.C:
       self.update_target_network()
       self.step_cnt = 0
       self.running_loss = 0.0
+
+    return td_errors
 
   def get_Q_output(self, Vt, St):
     ''' Returns output from the Q network. '''

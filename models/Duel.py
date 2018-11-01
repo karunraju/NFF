@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+import hyperparameters as PARAM
 from nets.ResNet import ResNet
 
 class DuelNet(nn.Module):
@@ -25,9 +26,9 @@ class DuelNet(nn.Module):
 
 class DuelQNetwork():
   def __init__(self, out_size):
-    self.C = 100                      # Clone the Q network to target network for every C steps
+    self.C = PARAM.C                  # Clone the Q network to target network for every C steps
     self.step_cnt = 0
-    self.lr = 0.001                   # Learning Rate
+    self.lr = PARAM.LEARNING_RATE     # Learning Rate
 
     # Q network and target network
     self.Q = DuelNet(out_size)
@@ -69,14 +70,18 @@ class DuelQNetwork():
     loss = self.criterion(bO, Yt)
     loss.backward()
     self.optimizer.step()
-
     self.running_loss += loss.item()
+
+    td_errors = (Yt - bO).clone().detach().cpu().numpy()
+
     # Update Target Network for every 'C' steps
     self.step_cnt = self.step_cnt + 1
     if self.step_cnt == self.C:
       self.update_target_network()
       self.step_cnt = 0
       self.running_loss = 0.0
+
+    return td_errors
 
   def get_Q_output(self, Vt, St):
     ''' Returns output from the Q network. '''
