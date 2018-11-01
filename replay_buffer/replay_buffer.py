@@ -4,7 +4,7 @@
 import random
 import numpy as np
 
-from segment_tree import SumSegmentTree, MinSegmentTree
+from replay_buffer.segment_tree import SumSegmentTree, MinSegmentTree
 
 class ReplayBuffer(object):
   def __init__(self, size):
