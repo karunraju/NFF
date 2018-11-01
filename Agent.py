@@ -11,6 +11,7 @@ from ReplayMemory import ReplayMemory
 from replay_buffer.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer, LinearSchedule
 from models.Duel import DuelQNetwork
 from models.Double_DQN import DoubleQNetwork
+from canonical_plot import plot
 
 class Agent():
   def __init__(self, render=False, method='Duel'):
@@ -171,6 +172,8 @@ class Agent():
         plt.title('Training Curve')
         plt.savefig(self.dump_dir + 'Training_Curve_' + self.method + '.png')
         plt.close()
+
+        plot(self.dump_dir + self.method, train_rewards)
 
 
       if test_steps == 500:
