@@ -1,7 +1,6 @@
 *.swp
 *.pdf
 *.eps
-*.png
 *.jpg
 *.mat
 *.gif
@@ -14,7 +13,6 @@
 *karun_results*
 *Duplicate*
 *duplicate*
-*log*
 *clean*
 *count_lines*
 *99999*
