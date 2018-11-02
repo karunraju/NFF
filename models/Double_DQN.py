@@ -8,9 +8,9 @@ from nets.ResNet import ResNet
 class DoubleQNet(nn.Module):
   def __init__(self, sz):
     super(DoubleQNet, self).__init__()
-    scent_isize = 4
-    scent_hsize = 64
-    scent_osize = 64
+    #scent_isize = 4
+    #scent_hsize = 64
+    scent_osize = 4
 
     self.res = ResNet()
     act = nn.ReLU(inplace=True)
@@ -19,9 +19,9 @@ class DoubleQNet(nn.Module):
     self.seq = nn.Sequential(l1, act, l2)
 
     # Adding 2 linear layers to process scent
-    sl1 = nn.Linear(scent_isize, scent_hsize)
-    sl2 = nn.Linear(scent_hsize, scent_osize)
-    self.scent_seq = nn.Sequential(sl1, act, sl2)
+    #sl1 = nn.Linear(scent_isize, scent_hsize)
+    #sl2 = nn.Linear(scent_hsize, scent_osize)
+    #self.scent_seq = nn.Sequential(sl1, act, sl2)
 
     self.initialize()
 
@@ -34,16 +34,16 @@ class DoubleQNet(nn.Module):
       except:
         pass
 
-    for layer in self.scent_seq:
-      try:
-        nn.init.xavier_uniform_(layer.weight.data)
-        nn.init.constant_(layer.bias.data, 0)
-      except:
-        pass
+    #for layer in self.scent_seq:
+    #  try:
+    #    nn.init.xavier_uniform_(layer.weight.data)
+    #    nn.init.constant_(layer.bias.data, 0)
+    #  except:
+    #    pass
 
 
   def forward(self, im, s):
-    s = self.scent_seq(s)
+    #s = self.scent_seq(s)
     x = self.res(im)
     x = torch.cat((x, s), dim=1)
     return self.seq(x)
