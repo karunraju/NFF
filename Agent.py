@@ -51,8 +51,6 @@ class Agent():
       self.replay_buffer = ReplayBuffer(PARAM.REPLAY_MEMORY_SIZE)
       self.beta_schedule = None
 
-    self.burn_in_memory()
-
     # Create QNetwork instance
     if self.method == 'Duel':
       print('Using Duel Network.')
@@ -99,7 +97,9 @@ class Agent():
 
     cum_reward = 0.0
     elapsed = 0.0
+
     curr_state = self.env.reset()
+    curr_state = self.burn_in_memory(curr_state)
     prev_action = -1
     if self.render:
       self.env.render()
@@ -231,20 +231,19 @@ class Agent():
 
     return avg_reward
 
-  def burn_in_memory(self):
+  def burn_in_memory(self, curr_state):
     # Initialize your replay memory with a burn_in number of episodes / transitions.
     cnt = 0
     while self.burn_in > cnt:
-      curr_state = self.env.reset()
-      while self.burn_in > cnt:
-        # Randomly selecting action for burn in. Not sure if this is correct.
-        action = self.env.action_space.sample()
-        next_state, reward, _, _ = self.env.step(action)
+      # Randomly selecting action for burn in. Not sure if this is correct.
+      action = self.env.action_space.sample()
+      next_state, reward, _, _ = self.env.step(action)
 
-        self.replay_buffer.add(curr_state, action, reward/100.0, next_state, 0)
+      self.replay_buffer.add(curr_state, action, reward/100.0, next_state, 0)
 
-        curr_state = next_state
-        cnt = cnt + 1
+      curr_state = next_state
+      cnt = cnt + 1
+    return curr_state
 
   def get_input_tensor(self, obs):
     ''' Returns an input tensor from the observation. '''
