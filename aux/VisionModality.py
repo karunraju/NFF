@@ -9,19 +9,12 @@ class VisionModality(nn.Module):
         super().__init__()
         self.Activation = activation
         self.cnn1 = InceptionFilter(self.Activation)
-        self.cnn2 = nn.Sequential(
-                                nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=0, bias=True), 
-                                self.Activation()
-                                )
-        self.fc1  = nn.Sequential(
-                                nn.Linear(num_input_to_fc, 2*num_input_to_fc, bias=True),                                 self.Activation(),
-                                nn.Linear(2*num_input_to_fc, 256, bias=True),                                self.Activation()
-                                )
+        self.cnn2 = nn.Sequential(nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=0, bias=True), self.Activation())
+        self.fc1  = nn.Sequential(nn.Linear(num_input_to_fc, 2*num_input_to_fc, bias=True), self.Activation(),
+                                  nn.Linear(2*num_input_to_fc, 256, bias=True), self.Activation())
         self.lstm = nn.LSTM(input_size=256, hidden_size=256, num_layers=3, dropout=0, bidirectional=True)
-        self.fc2  = nn.Sequential(
-                                nn.Linear(512, 256, bias=True),                                 self.Activation(),
-                                nn.Linear(256, 128, bias=True),                                self.Activation()
-                                )
+        self.fc2  = nn.Sequential(nn.Linear(512, 256, bias=True), self.Activation(),
+                                  nn.Linear(256, 128, bias=True), self.Activation())
         self.layers = [self.cnn1, self.cnn2, self.fc1, self.lstm, self.fc2]
         self.initializeWeights()
 
