@@ -65,7 +65,10 @@ class Multimodal(nn.Module):
     def save(self, fname="Multi_{}.pth".format(time.time())):
         torch.save(self.state_dict(), fname)
         for name,parameter in self.named_parameters():
-            cv2.imwrite(name,parameter)
+            try:
+                cv2.imwrite(name,parameter)
+            except:
+                pass
         return fname
 
     def load(self, fname):

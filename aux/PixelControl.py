@@ -14,7 +14,7 @@ class PixelControl(nn.Module):
         self.decon = nn.Sequential(         nn.ConvTranspose2d(32, 16, 4, stride=1, padding=0, output_padding=0),   self.Activation(),
                                             nn.ConvTranspose2d(16, 1, 4, stride=1, padding=0, output_padding=0),    self.Activation()
                                     )
-        deconv_size=256
+        deconv_size=304
         self.ouput_common_linear = nn.Sequential(  nn.Linear(deconv_size, deconv_size//2),                                       self.Activation(),
                                                    nn.Linear(deconv_size//2, deconv_size//4),                                    self.Activation()
                                     )
@@ -22,7 +22,7 @@ class PixelControl(nn.Module):
                                             nn.Linear(deconv_size//8, 1)
                                     )
         self.advantage_linear = nn.Sequential(  nn.Linear(deconv_size//4, deconv_size//8),                                       self.Activation(),
-                                                nn.Linear(deconv_size//8, 4)
+                                                nn.Linear(deconv_size//8, self.action_space)
                                     )
 
         self.layers = [self.input_linear, self.decon, self.ouput_common_linear, self.value_linear, self.advantage_linear]

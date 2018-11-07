@@ -9,7 +9,7 @@ from RewardPrediction import RewardPrediction
 import cv2
 
 class AuxNetwork(nn.Module):
-    def __init__(self, num_input_to_fc, state_size, action_space, activation=nn.ReLU):
+    def __init__(self, state_size, action_space=3, num_input_to_fc=3872, activation=nn.ReLU):
         super().__init__()
         self.Activation = activation
         self.Multimodal = Multimodal(num_input_to_fc, state_size, action_space, activation)        
@@ -57,7 +57,10 @@ class AuxNetwork(nn.Module):
     def save(self, fname="Aux_{}.pth".format(time.time())):
         torch.save(self.state_dict(), fname)
         for name,parameter in self.named_parameters():
-            cv2.imwrite(name,parameter)
+            try:
+                cv2.imwrite(name,parameter)
+            except:
+                pass
         return fname
 
     def load(self, fname):
