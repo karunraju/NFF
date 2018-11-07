@@ -6,7 +6,10 @@ from aux.Multimodal import Multimodal
 from aux.PixelControl import PixelControl
 from aux.FeatureControl import FeatureControl
 from aux.RewardPrediction import RewardPrediction
-import cv2
+try:
+  import cv2
+except ImportError:
+  pass
 
 class AuxNetwork(nn.Module):
     def __init__(self, state_size, seq_len=1, action_space=3, num_input_to_fc=3872, activation=nn.ReLU):

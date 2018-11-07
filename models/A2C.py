@@ -75,7 +75,6 @@ class A2C():
   def compute_vfr_loss(self):
     idxs = self.replay_buffer.sample_idxs(20)
     vision, scent, state, reward = self.get_io_from_replay_buffer(idxs, batch_size=20, seq_len=self.seq_len)
-    print(vision.shape, scent.shape)
     val, _, _, _ = self.A.forward(vision, scent, state)
 
     return self.vfr_criterion(val.view(-1, 1), reward)

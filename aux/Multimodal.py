@@ -4,7 +4,11 @@ import time
 import numpy as np
 from aux.VisionModality import VisionModality
 from aux.ScentModality import ScentModality
-import cv2
+try:
+  import cv2
+except ImportError:
+  pass
+
 
 class Multimodal(nn.Module):
     def __init__(self, num_input_to_fc, state_size, action_space, activation=nn.ReLU, seq_len=1):

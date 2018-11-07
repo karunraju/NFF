@@ -2,6 +2,11 @@ import torch.nn as nn
 import torch
 import time
 import numpy as np
+try:
+  import cv2
+except ImportError:
+  pass
+
 
 class PixelControl(nn.Module):
     def __init__(self, state_size, action_space, activation=nn.ReLU):
