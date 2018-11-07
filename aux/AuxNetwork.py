@@ -58,7 +58,7 @@ class AuxNetwork(nn.Module):
         torch.save(self.state_dict(), fname)
         for name,parameter in self.named_parameters():
             try:
-                cv2.imwrite(name,parameter.numpy())
+                cv2.imwrite("{}.png".format(name),parameter.numpy())
             except:
                 pass
         return fname
