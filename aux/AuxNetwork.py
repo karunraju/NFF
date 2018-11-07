@@ -2,10 +2,10 @@ import torch.nn as nn
 import torch
 import time
 import numpy as np
-from Multimodal import Multimodal
-from PixelControl import PixelControl
-from FeatureControl import FeatureControl
-from RewardPrediction import RewardPrediction
+from aux.Multimodal import Multimodal
+from aux.PixelControl import PixelControl
+from aux.FeatureControl import FeatureControl
+from aux.RewardPrediction import RewardPrediction
 import cv2
 
 class AuxNetwork(nn.Module):

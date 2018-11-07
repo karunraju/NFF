@@ -1,5 +1,6 @@
 import sys, argparse
 from Agent import Agent
+from Agent_aux import Agent_aux
 
 def parse_arguments():
   parser = argparse.ArgumentParser(description='Navigate-Fetch-Find Argument Parser')
@@ -13,7 +14,8 @@ def parse_arguments():
 def main():
   args = parse_arguments()
 
-  agent = Agent(render=args.render, method=args.method)
+  #agent = Agent(render=args.render, method=args.method)
+  agent = Agent_aux(render=args.render)
   agent.train()
   #agent.test()
 

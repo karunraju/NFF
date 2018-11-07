@@ -1,19 +1,21 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import numpy as np
 
 import hyperparameters as PARAM
-import aux.Multimodal as Multimodal
+from aux.AuxNetwork import AuxNetwork
 
 class A2C():
-  def __init__(self, episode_buffer, state_size, action_space=3, N=100):
+  def __init__(self, episode_buffer, action_space=3, N=100):
     self.lr = PARAM.LEARNING_RATE     # Learning Rate
     self.episode_buffer = episode_buffer
-    self.tmax = PARAM.tmax
+    self.tmax = PARAM.A2C_EPISODE_SIZE
     self.N = PARAM.N
+    self.gamma = PARAM.gamma
 
     # A2C network
-    self.A = Multimodal.Multimodal(state_size, action_sapce)
+    self.A = AuxNetwork(2, action_space=action_space)
 
     # GPU availability
     self.gpu = torch.cuda.is_available()
@@ -24,78 +26,80 @@ class A2C():
       print("Using CPU")
 
     # Loss Function and Optimizer
-    self.val_optim = optim.Adam(self.A.parameters(), lr=self.lr, weight_decay=1e-6)
-    self.pol_optim = optim.Adam(self.A.parameters(), lr=self.lr, weight_decay=1e-6)
+    self.optimzer = optim.Adam(self.A.parameters(), lr=self.lr, weight_decay=1e-6)
 
   def reduce_learning_rate(self):
     for pgroups in self.optimizer.param_groups:
       pgroups['lr'] = pgroups['lr']/10.0
 
-  def train(self)
-    self.val_optim.zero_grad()
-    self.pol_optim.zero_grad()
-
-    ploss, vloss = self.compute_loss()
-    ploss.backward(retain_graph=True)
-    vloss.backward()
-
-    self.val_optim.step()
-    self.pol_optim.step()
+  def train(self):
+    self.optimzer.zero_grad()
+    loss = self.compute_loss()
+    loss.backward()
+    self.optimizer.step()
 
   def compute_loss(self):
     T = self.tmax
+    n = self.N
     for t in range(T-1, -1, -1):
-      state, action, reward, next_state, softmax = self.episode_buffer[t]
-      vt, st = self.get_input_tensor(tn_state)
-      val = self.A.forward(vt, st)
+      vision, scent, state = self.get_input_tensor([t])
+      val, _, _, _ = self.A.forward(vision, scent, state)
       if t + n >= T:
         Vend = 0
       else:
-        tn_state, _, _, _, _ = self.episode_buffer[t+n]
-        vt, st = self.get_input_tensor(tn_state)
-        Vend = self.A.forward(vt, st)
+        vision_tn, scent_tn, state_tn = self.get_input_tensor([t+n])
+        Vend, _, _, _ = self.A.forward(vision_tn, scent_tn, state_tn)
       sum_ = 0.0
       for k in range(n):
         if t + k < T:
-          _, _, tk_reward, _, _ = self.episode_buffer[t+k]
-          sum_ += tk_reward[t+k] * (gamma**k)
-      rew = Vend*(gamma**n) + float(sum_)
+          tk_reward = self.episode_buffer[t+k][2]
+          sum_ += tk_reward * (self.gamma**k)
+      rew = Vend*(self.gamma**n) + float(sum_)
       if t == T-1:
-         ploss = (rew - val)*pt.log(softmax)
+         ploss = (rew - val)*torch.log(self.episode_buffer[t][4][self.episode_buffer[t][1]])
          vloss = (rew - val)**2
       else:
-         ploss += (rew - val)*pt.log(softmax)
+         ploss += (rew - val)*torch.log(self.episode_buffer[t][4][self.episode_buffer[t][1]])
          vloss += (rew - val)**2
 
     ploss = -1.0*ploss/float(T)
     vloss = vloss/float(T)
-    return ploss, vloss
 
-  def get_output(self, state, no_grad=False):
+    loss = ploss + vloss
+    return loss
+
+  def get_output(self, index, batch_size=1, sequence_length=1, no_grad=False):
     ''' Returns output from the A network. '''
-    vt, st = self.get_input_tensor(state)
+    vision, scent, state = self.get_input_tensor(index, batch_size, sequence_length)
     if no_grad:
       with torch.no_grad():
-        Yt = self.A.forward(Vt, St)
+        _, softmax, _, _ = self.A.forward(vision, scent, state)
     else:
-      Yt = self.A.forward(Vt, St)
+      _, softmax, _, _ = self.A.forward(vision, scent, state)
 
-    # TODO: Add softmax
-    action = np.random.choice(np.arange(4), 1, p=sm.clone().detach().numpy())[0]
-    return softmax, action
+    action = np.random.choice(np.arange(3), 1, p=np.squeeze(softmax.clone().detach().numpy()))
+    return softmax.view(3), action
 
-  def get_input_tensor(self, obs):
+  def get_input_tensor(self, index, batch_size=1, sequence_length=1):
     ''' Returns an input tensor from the observation. '''
-    iV = np.zeros((1, 3, 11, 11))
-    iS = np.zeros((1, 4))
+    vision = np.zeros((batch_size, sequence_length, 3, 11, 11))
+    scent = np.zeros((batch_size, sequence_length, 3))
+    state = np.zeros((batch_size, sequence_length, 2))
 
-    iV[0] = np.moveaxis(obs['vision'], -1, 0)
-    iS[0] = np.concatenate((obs['scent'], np.array([int(obs['moved'])])), axis=0)
-    iVt, iSt = torch.from_numpy(iV).float(), torch.from_numpy(iS).float()
+    for i in index:
+      for j in range(sequence_length):
+        if i - j >= 0:
+          continue
+        obs, _, _, _, _, tong_count = self.episode_buffer[i-j]
+        vision[i, j] = np.moveaxis(obs['vision'], -1, 0)
+        scent[i, j] = obs['scent']
+        state[i, j] = np.array([int(obs['moved']), tong_count])
 
+    vision, scent, state = torch.from_numpy(vision).float(), torch.from_numpy(scent).float(), torch.from_numpy(state).float()
     if self.gpu:
-      iVt, iSt = iVt.cuda(), iSt.cuda()
-    return iVt, iSt
+      vision, scent, state = vision.cuda(), scent.cuda(), state.cuda()
+
+    return vision, scent, state
 
   def set_train(self):
     self.A.train()
@@ -108,8 +112,7 @@ class A2C():
     state = {
               'epoch': suffix,
               'state_dict': self.A.state_dict(),
-              'opt_val': self.opt_val.state_dict()
-              'opt_pol': self.opt_pol.state_dict()
+              'optmizer': self.optimizer.state_dict(),
             }
     torch.save(state, path + str(suffix) + '.dat')
 
@@ -117,5 +120,4 @@ class A2C():
     # Helper function to load an existing model.
     state = torch.load(model_file)
     self.A.load_state_dict(state['state_dict'])
-    self.opt_val.load_state_dict(state['opt_val'])
-    self.opt_pol.load_state_dict(state['opt_pol'])
+    self.optimizer.load_state_dict(state['optimizer'])

@@ -31,9 +31,9 @@ class Agent_aux():
     self.log_time = 100.0
     self.test_time = 1000.0
 
-    self.tmax = PARAM.tmax
-    self.episode_buffer = [[]] * PARAM.A2C_EPISODE_SIZE
-    self.net = A2C(self.episode_buffer, self.an)
+    self.tmax = PARAM.A2C_EPISODE_SIZE
+    self.episode_buffer = [[]] * self.tmax 
+    self.net = A2C(self.episode_buffer)
 
     cur_dir = os.getcwd()
     self.dump_dir = cur_dir + '/tmp_' + self.method + '_' + time.strftime("%Y%m%d-%H%M%S") + '/'
@@ -49,14 +49,19 @@ class Agent_aux():
     self.steps = 0
     self.cum_reward = 0.0
     self.save_count = 0
+    self.tong_count = 0
 
-  def generate_episode(self, tmax, render=False)
+  def generate_episode(self, tmax, render=False):
     for i in range(tmax):
-      softmax, action = self.net.get_output(self.curr_state)
+      softmax, action = self.net.get_output([i], sequence_length=1, batch_size=1)
       next_state, reward, _, _ = self.env.step(action)
       if render:
         env.render()
-      self.episode_buffer[i] = (self.curr_state, action, reward, next_state, softmax)
+      if reward == 20.0:
+        self.tong_count += 1
+      elif reward == 100.0:
+        self.tong_count -= 1
+      self.episode_buffer[i] = (self.curr_state, action, reward, next_state, softmax, self.tong_count)
       self.curr_state = next_state
 
       self.steps += 1
@@ -65,7 +70,7 @@ class Agent_aux():
         self.plot_train_stats()
 
   def train(self):
-    for i in range(self.training_time)
+    for i in range(self.training_time):
       self.net.set_train()
       self.generate_episode(self.tmax)
       self.net.train()
@@ -78,7 +83,7 @@ class Agent_aux():
     self.net.set_eval()
     cum_reward = 0.0
     for i in range(testing_steps):
-      softmax, action = self.net.get_output(self.curr_state)
+      softmax, action = self.net.get_output(self.curr_state, i)
       _, reward, _, _ = self.test_env.step(action)
       cum_reward += reward
 
@@ -98,24 +103,24 @@ class Agent_aux():
     plt.close()
 
   def plot_train_stats(self):
-    cum_reward = cum_reward/float(self.log_time)
-    train_rewards.append(cum_reward)
-    self.train_file.write(str(cum_reward))
+    self.cum_reward = self.cum_reward/float(self.log_time)
+    self.train_rewards.append(self.cum_reward)
+    self.train_file.write(str(self.cum_reward))
     self.train_file.write('\n')
     self.train_file.flush()
     self.cum_reward = 0.0
-    print('Train Reward: %.4f' % (train_rewards[-1]))
+    print('Train Reward: %.4f' % (self.train_rewards[-1]))
     self.steps = 0
 
-    x = list(range(len(train_rewards)))
-    plt.plot(x, train_rewards, '-bo')
+    x = list(range(len(self.train_rewards)))
+    plt.plot(x, self.train_rewards, '-bo')
     plt.xlabel('Time')
     plt.ylabel('Average Reward')
     plt.title('Training Curve')
     plt.savefig(self.dump_dir + 'Training_Curve_' + self.method + '.png')
     plt.close()
 
-    plot(self.dump_dir + self.method, train_rewards)
+    plot(self.dump_dir + self.method, self.train_rewards)
 
     if self.save_count > 0 and self.save_count % 30 == 0:
       self.net.save_model_weights(self.save_count, self.dump_dir)

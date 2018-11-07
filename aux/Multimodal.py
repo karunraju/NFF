@@ -2,8 +2,8 @@ import torch.nn as nn
 import torch
 import time
 import numpy as np
-from VisionModality import VisionModality
-from ScentModality import ScentModality
+from aux.VisionModality import VisionModality
+from aux.ScentModality import ScentModality
 import cv2
 
 class Multimodal(nn.Module):

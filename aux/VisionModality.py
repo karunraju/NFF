@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 import time
 import numpy as np
-from InceptionFilter import InceptionFilter
+from aux.InceptionFilter import InceptionFilter
 
 class VisionModality(nn.Module):
     def __init__(self, num_input_to_fc, activation=nn.ReLU):
