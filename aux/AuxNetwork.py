@@ -26,9 +26,10 @@ class AuxNetwork(nn.Module):
         batch_size = image.size(0)
         sequence_length = image.size(1)
         vision_lstm_ouput, value, policy = self.Multimodal.forward(image, scent, state, hidden_vision=None, hidden_scent=None, hidden_state=None)
-        pc_action_value = self.PixelControl.forward(vision_lstm_ouput)
-        fc_action_value = self.FeatureControl.forward(vision_lstm_ouput)
-        return value, policy, pc_action_value, fc_action_value
+        #pc_action_value = self.PixelControl.forward(vision_lstm_ouput)
+        #fc_action_value = self.FeatureControl.forward(vision_lstm_ouput)
+        #return value, policy, pc_action_value, fc_action_value
+        return value, policy, None, None
 
 
 

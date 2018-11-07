@@ -31,9 +31,11 @@ class Agent_aux():
     self.log_time = 100.0
     self.test_time = 1000.0
 
+    self.burn_in = PARAM.BURN_IN
     self.tmax = PARAM.A2C_EPISODE_SIZE
-    self.episode_buffer = [[]] * self.tmax 
-    self.net = A2C(self.episode_buffer)
+    self.replay_buffer = ReplayBuffer(PARAM.REPLAY_MEMORY_SIZE)
+    self.episode_buffer = [[]] * self.tmax
+    self.net = A2C(self.episode_buffer, self.replay_buffer)
 
     cur_dir = os.getcwd()
     self.dump_dir = cur_dir + '/tmp_' + self.method + '_' + time.strftime("%Y%m%d-%H%M%S") + '/'
@@ -44,6 +46,7 @@ class Agent_aux():
     self.test_file = open(self.dump_dir + 'test_rewards.txt', 'w')
 
     self.curr_state = self.env.reset()
+    #self.curr_state = self.burn_in_memory(self.curr_state)
     self.train_rewards = []
     self.test_rewards = []
     self.steps = 0
@@ -61,7 +64,8 @@ class Agent_aux():
         self.tong_count += 1
       elif reward == 100.0:
         self.tong_count -= 1
-      self.episode_buffer[i] = (self.curr_state, action, reward, next_state, softmax, self.tong_count)
+      self.episode_buffer[i] = (self.curr_state, action, reward/100.0, next_state, softmax, self.tong_count)
+      self.replay_buffer.add(self.curr_state, action, reward/100.0, next_state, 0, self.tong_count)
       self.curr_state = next_state
 
       self.steps += 1
@@ -124,3 +128,17 @@ class Agent_aux():
 
     if self.save_count > 0 and self.save_count % 30 == 0:
       self.net.save_model_weights(self.save_count, self.dump_dir)
+
+  def burn_in_memory(self, curr_state):
+    # Initialize your replay memory with a burn_in number of episodes / transitions.
+    cnt = 0
+    while self.burn_in > cnt:
+      action = self.env.action_space.sample()
+      next_state, reward, _, _ = self.env.step(action)
+
+      self.replay_buffer.add(curr_state, action, reward/100.0, next_state, 0)
+
+      curr_state = next_state
+      cnt = cnt + 1
+    return curr_state
+

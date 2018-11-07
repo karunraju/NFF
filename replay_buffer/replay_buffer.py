@@ -24,8 +24,8 @@ class ReplayBuffer(object):
   def __len__(self):
     return len(self._storage)
 
-  def add(self, obs_t, action, reward, obs_tp1, done):
-    data = (obs_t, action, reward, obs_tp1, done)
+  def add(self, obs_t, action, reward, obs_tp1, done, tong_count):
+    data = (obs_t, action, reward, obs_tp1, done, tong_count)
 
     if self._next_idx >= len(self._storage):
       self._storage.append(data)
@@ -35,7 +35,7 @@ class ReplayBuffer(object):
 
   def _encode_sample(self, idxes):
     return [self._storage[i] for i in idxes]
-    
+
   def sample(self, batch_size):
     """Sample a batch of experiences.
     Parameters
@@ -58,6 +58,13 @@ class ReplayBuffer(object):
     """
     idxes = [random.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
     return self._encode_sample(idxes)
+
+  def sample_idxs(self, batch_size):
+    idxes = [random.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
+    return idxes
+
+  def get_single_sample(self, idx):
+    return self._storage[idx]
 
 class PrioritizedReplayBuffer(ReplayBuffer):
   def __init__(self, size, alpha):

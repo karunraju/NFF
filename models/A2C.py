@@ -7,9 +7,10 @@ import hyperparameters as PARAM
 from aux.AuxNetwork import AuxNetwork
 
 class A2C():
-  def __init__(self, episode_buffer, action_space=3, N=100):
+  def __init__(self, episode_buffer, replay_buffer, action_space=3, N=100):
     self.lr = PARAM.LEARNING_RATE     # Learning Rate
     self.episode_buffer = episode_buffer
+    self.replay_buffer = replay_buffer
     self.tmax = PARAM.A2C_EPISODE_SIZE
     self.N = PARAM.N
     self.gamma = PARAM.gamma
@@ -26,19 +27,21 @@ class A2C():
       print("Using CPU")
 
     # Loss Function and Optimizer
-    self.optimzer = optim.Adam(self.A.parameters(), lr=self.lr, weight_decay=1e-6)
+    self.optimizer = optim.Adam(self.A.parameters(), lr=self.lr, weight_decay=1e-6)
+    self.vfr_criterion = nn.MSELoss()
 
   def reduce_learning_rate(self):
     for pgroups in self.optimizer.param_groups:
       pgroups['lr'] = pgroups['lr']/10.0
 
   def train(self):
-    self.optimzer.zero_grad()
-    loss = self.compute_loss()
+    self.optimizer.zero_grad()
+    loss = self.compute_A2C_loss()
+    loss += self.compute_vfr_loss()
     loss.backward()
     self.optimizer.step()
 
-  def compute_loss(self):
+  def compute_A2C_loss(self):
     T = self.tmax
     n = self.N
     for t in range(T-1, -1, -1):
@@ -68,6 +71,13 @@ class A2C():
     loss = ploss + vloss
     return loss
 
+  def compute_vfr_loss(self):
+    idxs = self.replay_buffer.sample_idxs(20)
+    vision, scent, state, reward = self.get_io_from_replay_buffer(idxs, batch_size=20)
+    val, _, _, _ = self.A.forward(vision, scent, state)
+
+    return self.vfr_criterion(val.view(-1, 1), reward)
+
   def get_output(self, index, batch_size=1, sequence_length=1, no_grad=False):
     ''' Returns output from the A network. '''
     vision, scent, state = self.get_input_tensor(index, batch_size, sequence_length)
@@ -80,13 +90,13 @@ class A2C():
     action = np.random.choice(np.arange(3), 1, p=np.squeeze(softmax.clone().detach().numpy()))
     return softmax.view(3), action
 
-  def get_input_tensor(self, index, batch_size=1, sequence_length=1):
+  def get_input_tensor(self, idxs, batch_size=1, sequence_length=1):
     ''' Returns an input tensor from the observation. '''
     vision = np.zeros((batch_size, sequence_length, 3, 11, 11))
     scent = np.zeros((batch_size, sequence_length, 3))
     state = np.zeros((batch_size, sequence_length, 2))
 
-    for i in index:
+    for i in idxs:
       for j in range(sequence_length):
         if i - j >= 0:
           continue
@@ -100,6 +110,28 @@ class A2C():
       vision, scent, state = vision.cuda(), scent.cuda(), state.cuda()
 
     return vision, scent, state
+
+  def get_io_from_replay_buffer(self, idxs, batch_size=1, sequence_length=1):
+    ''' Returns an input tensor from the observation. '''
+    vision = np.zeros((batch_size, sequence_length, 3, 11, 11))
+    scent = np.zeros((batch_size, sequence_length, 3))
+    state = np.zeros((batch_size, sequence_length, 2))
+    reward = np.zeros((batch_size, 1))
+
+    for k, idx in enumerate(idxs):
+      for j in range(sequence_length):
+        obs, _, rew, _, _, tong_count = self.replay_buffer.get_single_sample(idx-j)
+        vision[k, j] = np.moveaxis(obs['vision'], -1, 0)
+        scent[k, j] = obs['scent']
+        state[k, j] = np.array([int(obs['moved']), tong_count])
+        if j == 0:
+          reward[k] = rew
+
+    vision, scent, state, reward = torch.from_numpy(vision).float(), torch.from_numpy(scent).float(), torch.from_numpy(state).float(), torch.from_numpy(reward).float()
+    if self.gpu:
+      vision, scent, state, reward = vision.cuda(), scent.cuda(), state.cuda(), reward.cuda()
+
+    return vision, scent, state, reward
 
   def set_train(self):
     self.A.train()
