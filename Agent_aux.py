@@ -33,6 +33,7 @@ class Agent_aux():
 
     self.burn_in = PARAM.BURN_IN
     self.tmax = PARAM.A2C_EPISODE_SIZE
+    self.seq_len = PARAM.A2C_SEQUENCE_LENGTH
     self.replay_buffer = ReplayBuffer(PARAM.REPLAY_MEMORY_SIZE)
     self.episode_buffer = [[]] * self.tmax
     self.net = A2C(self.episode_buffer, self.replay_buffer)
@@ -56,7 +57,7 @@ class Agent_aux():
 
   def generate_episode(self, tmax, render=False):
     for i in range(tmax):
-      softmax, action = self.net.get_output([i], sequence_length=1, batch_size=1)
+      softmax, action = self.net.get_output([i-1], seq_len=self.seq_len, batch_size=1)
       next_state, reward, _, _ = self.env.step(action)
       if render:
         env.render()

@@ -14,9 +14,10 @@ class A2C():
     self.tmax = PARAM.A2C_EPISODE_SIZE
     self.N = PARAM.N
     self.gamma = PARAM.gamma
+    self.seq_len = PARAM.A2C_SEQUENCE_LENGTH
 
     # A2C network
-    self.A = AuxNetwork(2, action_space=action_space)
+    self.A = AuxNetwork(2, action_space=action_space, seq_len=self.seq_len)
 
     # GPU availability
     self.gpu = torch.cuda.is_available()
@@ -45,12 +46,12 @@ class A2C():
     T = self.tmax
     n = self.N
     for t in range(T-1, -1, -1):
-      vision, scent, state = self.get_input_tensor([t])
+      vision, scent, state = self.get_input_tensor([t], seq_len=self.seq_len)
       val, _, _, _ = self.A.forward(vision, scent, state)
       if t + n >= T:
         Vend = 0
       else:
-        vision_tn, scent_tn, state_tn = self.get_input_tensor([t+n])
+        vision_tn, scent_tn, state_tn = self.get_input_tensor([t+n], seq_len=self.seq_len)
         Vend, _, _, _ = self.A.forward(vision_tn, scent_tn, state_tn)
       sum_ = 0.0
       for k in range(n):
@@ -73,14 +74,15 @@ class A2C():
 
   def compute_vfr_loss(self):
     idxs = self.replay_buffer.sample_idxs(20)
-    vision, scent, state, reward = self.get_io_from_replay_buffer(idxs, batch_size=20)
+    vision, scent, state, reward = self.get_io_from_replay_buffer(idxs, batch_size=20, seq_len=self.seq_len)
+    print(vision.shape, scent.shape)
     val, _, _, _ = self.A.forward(vision, scent, state)
 
     return self.vfr_criterion(val.view(-1, 1), reward)
 
-  def get_output(self, index, batch_size=1, sequence_length=1, no_grad=False):
+  def get_output(self, index, batch_size=1, seq_len=1, no_grad=False):
     ''' Returns output from the A network. '''
-    vision, scent, state = self.get_input_tensor(index, batch_size, sequence_length)
+    vision, scent, state = self.get_input_tensor(index, batch_size, seq_len)
     if no_grad:
       with torch.no_grad():
         _, softmax, _, _ = self.A.forward(vision, scent, state)
@@ -90,20 +92,20 @@ class A2C():
     action = np.random.choice(np.arange(3), 1, p=np.squeeze(softmax.clone().detach().numpy()))
     return softmax.view(3), action
 
-  def get_input_tensor(self, idxs, batch_size=1, sequence_length=1):
+  def get_input_tensor(self, idxs, batch_size=1, seq_len=1):
     ''' Returns an input tensor from the observation. '''
-    vision = np.zeros((batch_size, sequence_length, 3, 11, 11))
-    scent = np.zeros((batch_size, sequence_length, 3))
-    state = np.zeros((batch_size, sequence_length, 2))
+    vision = np.zeros((batch_size, seq_len, 3, 11, 11))
+    scent = np.zeros((batch_size, seq_len, 3))
+    state = np.zeros((batch_size, seq_len, 2))
 
-    for i in idxs:
-      for j in range(sequence_length):
-        if i - j >= 0:
+    for k, idx in enumerate(idxs):
+      for j in range(seq_len):
+        if idx - j < 0:
           continue
-        obs, _, _, _, _, tong_count = self.episode_buffer[i-j]
-        vision[i, j] = np.moveaxis(obs['vision'], -1, 0)
-        scent[i, j] = obs['scent']
-        state[i, j] = np.array([int(obs['moved']), tong_count])
+        obs, _, _, _, _, tong_count = self.episode_buffer[idx-j]
+        vision[k, j] = np.moveaxis(obs['vision'], -1, 0)
+        scent[k, j] = obs['scent']
+        state[k, j] = np.array([int(obs['moved']), tong_count])
 
     vision, scent, state = torch.from_numpy(vision).float(), torch.from_numpy(scent).float(), torch.from_numpy(state).float()
     if self.gpu:
@@ -111,15 +113,15 @@ class A2C():
 
     return vision, scent, state
 
-  def get_io_from_replay_buffer(self, idxs, batch_size=1, sequence_length=1):
+  def get_io_from_replay_buffer(self, idxs, batch_size=1, seq_len=1):
     ''' Returns an input tensor from the observation. '''
-    vision = np.zeros((batch_size, sequence_length, 3, 11, 11))
-    scent = np.zeros((batch_size, sequence_length, 3))
-    state = np.zeros((batch_size, sequence_length, 2))
+    vision = np.zeros((batch_size, seq_len, 3, 11, 11))
+    scent = np.zeros((batch_size, seq_len, 3))
+    state = np.zeros((batch_size, seq_len, 2))
     reward = np.zeros((batch_size, 1))
 
     for k, idx in enumerate(idxs):
-      for j in range(sequence_length):
+      for j in range(seq_len):
         obs, _, rew, _, _, tong_count = self.replay_buffer.get_single_sample(idx-j)
         vision[k, j] = np.moveaxis(obs['vision'], -1, 0)
         scent[k, j] = obs['scent']

@@ -9,10 +9,10 @@ from aux.RewardPrediction import RewardPrediction
 import cv2
 
 class AuxNetwork(nn.Module):
-    def __init__(self, state_size, action_space=3, num_input_to_fc=3872, activation=nn.ReLU):
+    def __init__(self, state_size, seq_len=1, action_space=3, num_input_to_fc=3872, activation=nn.ReLU):
         super().__init__()
         self.Activation = activation
-        self.Multimodal = Multimodal(num_input_to_fc, state_size, action_space, activation)        
+        self.Multimodal = Multimodal(num_input_to_fc, state_size, action_space, activation, seq_len=seq_len)
         self.PixelControl = PixelControl(state_size, action_space, activation)
         self.FeatureControl = FeatureControl(state_size, action_space, activation)
         self.RewardPrediction = RewardPrediction(num_input_to_fc, self.Multimodal.vision.encoders, activation)
@@ -26,12 +26,13 @@ class AuxNetwork(nn.Module):
         batch_size = image.size(0)
         sequence_length = image.size(1)
         vision_lstm_ouput, value, policy = self.Multimodal.forward(image, scent, state, hidden_vision=None, hidden_scent=None, hidden_state=None)
-        pc_action_value = self.PixelControl.forward(vision_lstm_ouput)
+        #pc_action_value = self.PixelControl.forward(vision_lstm_ouput)
         """
         Deprecated Feature Control. Not fixing that model anymore.
         fc_action_value = self.FeatureControl.forward(vision_lstm_ouput)
         """
-        return value, policy, pc_action_value, None
+        #return value, policy, pc_action_value, None
+        return value, policy, None, None
 
 
 

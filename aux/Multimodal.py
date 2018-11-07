@@ -7,7 +7,7 @@ from aux.ScentModality import ScentModality
 import cv2
 
 class Multimodal(nn.Module):
-    def __init__(self, num_input_to_fc, state_size, action_space, activation=nn.ReLU):
+    def __init__(self, num_input_to_fc, state_size, action_space, activation=nn.ReLU, seq_len=1):
         super().__init__()
         self.Activation = activation
         self.vision = VisionModality(num_input_to_fc, self.Activation)
@@ -17,8 +17,8 @@ class Multimodal(nn.Module):
         self.lstm = nn.LSTM(input_size=4*state_size+128+32, hidden_size=256, num_layers=3, dropout=0, bidirectional=True)
         self.fc2  = nn.Sequential(nn.Linear(512, 128, bias=True), self.Activation(),
                                   nn.Linear(128, 32, bias=True), self.Activation())
-        self.policy = nn.Linear(32, action_space, bias=True)
-        self.value = nn.Linear(32, 1, bias=True)
+        self.policy = nn.Linear(32*seq_len, action_space, bias=True)
+        self.value = nn.Linear(32*seq_len, 1, bias=True)
         self.layers = [self.vision, self.scent, self.fc1, self.lstm, self.fc2, self.policy, self.value]
         self.initializeWeights()
 
@@ -33,10 +33,9 @@ class Multimodal(nn.Module):
         state = self.fc1.forward(state.view(batch_size*sequence_length,-1)).view(batch_size,sequence_length,-1)
         embedding = torch.cat([image,scent,state],dim=-1).permute(1,0,2)
         lstm_ouput, hidden_state = self.lstm(embedding, hidden_state)
-        lstm_ouput = lstm_ouput.permute(1,0,2).view(batch_size*sequence_length,-1)
-        x = self.fc2(lstm_ouput)
-        value = self.value(x).view(batch_size,sequence_length,-1)
-        policy = self.policy(x).view(batch_size,sequence_length,-1)
+        x = self.fc2(lstm_ouput).view(batch_size*sequence_length, -1)
+        value = self.value(x.view(batch_size,-1))
+        policy = self.policy(x.view(batch_size,-1))
         return vision_lstm_ouput, value, nn.functional.softmax(policy,dim=-1)
 
 
