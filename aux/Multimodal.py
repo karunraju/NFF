@@ -28,15 +28,16 @@ class Multimodal(nn.Module):
     def forward(self, image, scent, state, hidden_vision=None, hidden_scent=None, hidden_state=None):
         batch_size = image.size(0)
         sequence_length = image.size(1)
-        image,hidden_vision = self.vision.forward(image,hidden_vision)
+        vision_lstm_ouput, image,hidden_vision = self.vision.forward(image,hidden_vision)
         scent,hidden_scent = self.scent.forward(scent,hidden_scent)
         state = self.fc1.forward(state.view(batch_size*sequence_length,-1)).view(batch_size,sequence_length,-1)
         embedding = torch.cat([image,scent,state],dim=-1).permute(1,0,2)
-        x, hidden_state = self.lstm(embedding, hidden_state)
-        x = self.fc2(x.permute(1,0,2).view(batch_size*sequence_length,-1))
+        lstm_ouput, hidden_state = self.lstm(embedding, hidden_state)
+        lstm_ouput = lstm_ouput.permute(1,0,2).view(batch_size*sequence_length,-1)
+        x = self.fc2(lstm_ouput)
         value = self.value(x).view(batch_size,sequence_length,-1)
         policy = self.policy(x).view(batch_size,sequence_length,-1)
-        return value, policy
+        return vision_lstm_ouput, value, nn.functional.softmax(policy,dim=-1)
 
 
     def initializeWeights(self, function=nn.init.xavier_normal_):
@@ -61,7 +62,7 @@ class Multimodal(nn.Module):
 
 
 
-    def save(self, fname="Vision_{}.pth".format(time.time())):
+    def save(self, fname="Multi_{}.pth".format(time.time())):
         torch.save(self.state_dict(), fname)
         for name,parameter in self.named_parameters():
             cv2.imwrite(name,parameter)

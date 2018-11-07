@@ -17,6 +17,7 @@ class VisionModality(nn.Module):
                                   nn.Linear(256, 128, bias=True), self.Activation())
         self.layers = [self.cnn1, self.cnn2, self.fc1, self.lstm, self.fc2]
         self.initializeWeights()
+        return [self.cnn1,self.cnn2]
 
 
 
@@ -27,9 +28,10 @@ class VisionModality(nn.Module):
         x = self.cnn1(image.view(-1, image.size(2),image.size(3),image.size(4)))
         x = self.cnn2(x)                    #gives BL x C x H x W
         x = self.fc1(x.view(x.size(0),-1)).view(batch_size,sequence_length,-1).permute(1,0,2)
-        x,hidden_vision = self.lstm(x,hidden_vision)
-        x = self.fc2(x.permute(1,0,2).view(batch_size*sequence_length,-1)).view(batch_size,sequence_length,-1)
-        return x,hidden_vision
+        lstm_output,hidden_vision = self.lstm(x,hidden_vision)
+        lstm_output = lstm_output.permute(1,0,2).view(batch_size*sequence_length,-1)
+        x = self.fc2(lstm_output).view(batch_size,sequence_length,-1)
+        return lstm_output,x,hidden_vision
 
 
 

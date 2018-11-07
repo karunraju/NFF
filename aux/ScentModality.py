@@ -46,7 +46,7 @@ class ScentModality(nn.Module):
 
 
 
-    def save(self, fname="Vision_{}.pth".format(time.time())):
+    def save(self, fname="Scent_{}.pth".format(time.time())):
         torch.save(self.state_dict(), fname)
         return fname
 
