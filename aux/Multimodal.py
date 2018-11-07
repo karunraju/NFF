@@ -7,10 +7,10 @@ from ScentModality import ScentModality
 import cv2
 
 class Multimodal(nn.Module):
-    def __init__(self, state_size, action_space, activation=nn.ReLU):
+    def __init__(self, num_input_to_fc, state_size, action_space, activation=nn.ReLU):
         super().__init__()
         self.Activation = activation
-        self.vision = VisionModality(self.Activation)
+        self.vision = VisionModality(num_input_to_fc, self.Activation)
         self.scent = ScentModality(self.Activation)
         self.fc1  = nn.Sequential(nn.Linear(state_size, 2*state_size, bias=True), self.Activation(),
                                   nn.Linear(2*state_size, 4*state_size, bias=True), self.Activation())

@@ -5,7 +5,7 @@ import numpy as np
 from InceptionFilter import InceptionFilter
 
 class VisionModality(nn.Module):
-    def __init__(self, activation=nn.ReLU):
+    def __init__(self, num_input_to_fc, activation=nn.ReLU):
         super().__init__()
         self.Activation = activation
         self.cnn1 = InceptionFilter(self.Activation)
@@ -17,7 +17,7 @@ class VisionModality(nn.Module):
                                   nn.Linear(256, 128, bias=True), self.Activation())
         self.layers = [self.cnn1, self.cnn2, self.fc1, self.lstm, self.fc2]
         self.initializeWeights()
-        return [self.cnn1,self.cnn2]
+        self.encoders =  [self.cnn1,self.cnn2]
 
 
 
