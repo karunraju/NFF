@@ -9,9 +9,9 @@ class ScentModality(nn.Module):
         self.Activation = activation
         self.fc1  = nn.Sequential(nn.Linear(3, 4*3, bias=True), self.Activation(),
                                   nn.Linear(4*3, 8*3, bias=True), self.Activation())
-        self.lstm = nn.LSTM(input_size=8*3, hidden_size=128, num_layers=3, dropout=0, bidirectional=True)
-        self.fc2  = nn.Sequential(nn.Linear(256, 128, bias=True), self.Activation(),
-                                  nn.Linear(128, 64, bias=True), self.Activation())
+        self.lstm = nn.LSTM(input_size=8*3, hidden_size=64, num_layers=3, dropout=0, bidirectional=True)
+        self.fc2  = nn.Sequential(nn.Linear(128, 64, bias=True), self.Activation(),
+                                  nn.Linear(128, 32, bias=True), self.Activation())
         self.layers = [self.fc1, self.lstm, self.fc2]
         self.initializeWeights()
 

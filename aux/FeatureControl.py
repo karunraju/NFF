@@ -11,8 +11,8 @@ class FeatureControl(nn.Module):
         self.input_linear = nn.Sequential(  nn.Linear(512, 1024),            self.Activation(),
                                             nn.Linear(1024, 2048),            self.Activation(),
                                     )
-        self.decon = nn.Sequential(         nn.ConvTranspose2d(32, 16, 5, stride=1, padding=0, output_padding=0),   self.Activation(),
-                                            nn.ConvTranspose2d(16, 1, 5, stride=1, padding=0, output_padding=0),    self.Activation()
+        self.decon = nn.Sequential(         nn.ConvTranspose2d(32, 1, 5, stride=1, padding=0, output_padding=0),   self.Activation(),
+                                            nn.ConvTranspose2d(1, action_space, 5, stride=1, padding=0, output_padding=0),    self.Activation()
                                     )
         deconv_size=400
         self.ouput_common_linear = nn.Sequential(  nn.Linear(deconv_size, deconv_size//2),                                         self.Activation(),

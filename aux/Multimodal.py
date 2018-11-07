@@ -14,7 +14,7 @@ class Multimodal(nn.Module):
         self.scent = ScentModality(self.Activation)
         self.fc1  = nn.Sequential(nn.Linear(state_size, 2*state_size, bias=True), self.Activation(),
                                   nn.Linear(2*state_size, 4*state_size, bias=True), self.Activation())
-        self.lstm = nn.LSTM(input_size=4*state_size+128+64, hidden_size=256, num_layers=3, dropout=0, bidirectional=True)
+        self.lstm = nn.LSTM(input_size=4*state_size+128+32, hidden_size=256, num_layers=3, dropout=0, bidirectional=True)
         self.fc2  = nn.Sequential(nn.Linear(512, 128, bias=True), self.Activation(),
                                   nn.Linear(128, 32, bias=True), self.Activation())
         self.policy = nn.Linear(32, action_space, bias=True)

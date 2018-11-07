@@ -11,18 +11,18 @@ class PixelControl(nn.Module):
         self.input_linear = nn.Sequential(  nn.Linear(512, 1024),            self.Activation(),
                                             nn.Linear(1024, 2048),            self.Activation()
                                     )
-        self.decon = nn.Sequential(         nn.ConvTranspose2d(32, 16, 4, stride=1, padding=0, output_padding=0),   self.Activation(),
-                                            nn.ConvTranspose2d(16, 1, 4, stride=1, padding=0, output_padding=0),    self.Activation()
+        self.decon = nn.Sequential(         nn.ConvTranspose2d(32, 1, 4, stride=1, padding=0, output_padding=0),   self.Activation(),
+                                            nn.ConvTranspose2d(1, action_space, 4, stride=2, padding=0, output_padding=0),    self.Activation()
                                     )
-        deconv_size=304
+        deconv_size=2592
         self.ouput_common_linear = nn.Sequential(  nn.Linear(deconv_size, deconv_size//2),                                       self.Activation(),
                                                    nn.Linear(deconv_size//2, deconv_size//4),                                    self.Activation()
                                     )
         self.value_linear = nn.Sequential(  nn.Linear(deconv_size//4, deconv_size//8),                                           self.Activation(),
-                                            nn.Linear(deconv_size//8, 1)
+                                            nn.Linear(deconv_size//8, 11*11)
                                     )
-        self.advantage_linear = nn.Sequential(  nn.Linear(deconv_size//4, deconv_size//8),                                       self.Activation(),
-                                                nn.Linear(deconv_size//8, self.action_space)
+        self.advantage_linear = nn.Sequential(  nn.Linear(deconv_size//4, deconv_size//6),                                       self.Activation(),
+                                                nn.Linear(deconv_size//6, self.action_space*11*11)
                                     )
 
         self.layers = [self.input_linear, self.decon, self.ouput_common_linear, self.value_linear, self.advantage_linear]
@@ -38,10 +38,10 @@ class PixelControl(nn.Module):
         x = self.input_linear(x).view(batch_size*sequence_length,32,-1)
         x = self.decon(x.view(batch_size*sequence_length,32,x.size(-1)//2,-1))
         x = self.ouput_common_linear(x.view(batch_size*sequence_length,-1))
-        value = self.value_linear(x).view(batch_size,sequence_length,-1)
-        advantage = self.advantage_linear(x).view(batch_size,sequence_length,-1)
-        action_value = value.repeat(1,1,self.action_space) + advantage - advantage.mean(dim=-1)  #Is the mean along batch axis or per state
-        return action_value         #B x L x action_space
+        value = self.value_linear(x).view(batch_size,sequence_length,1,11,11)
+        advantage = self.advantage_linear(x).view(batch_size,sequence_length,self.action_space,11,11)
+        action_value = value.repeat(1,1,self.action_space,1,1) + advantage - advantage.mean(dim=-3)  #Is the mean along batch axis or per state
+        return action_value         #B x L x action_space x 11 x 11
 
 
     def initializeWeights(self, function=nn.init.xavier_normal_):
