@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -41,6 +42,9 @@ class A2C():
     loss += self.compute_vfr_loss()
     loss.backward()
     self.optimizer.step()
+
+    if math.isnan(loss.item()):
+      print('Loss Eploded!')
 
   def compute_A2C_loss(self):
     T = self.tmax
