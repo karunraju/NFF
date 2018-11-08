@@ -16,7 +16,10 @@ class Multimodal(nn.Module):
         super().__init__()
         self.Activation = activation
         self.vision = VisionModality(num_input_to_fc, self.Activation)
-        self.scent = ScentModality(self.Activation)
+        if PARAM.SCENT_MODALITY:
+          self.scent = ScentModality(self.Activation)
+        else:
+          self.scent = nn.Linear(3, 32, bias=True)
         self.fc1  = nn.Sequential(nn.Linear(state_size, 2*state_size, bias=True), self.Activation(),
                                   nn.Linear(2*state_size, 4*state_size, bias=True), self.Activation())
         if PARAM.bidirectional:
@@ -36,8 +39,11 @@ class Multimodal(nn.Module):
     def forward(self, image, scent, state, hidden_vision=None, hidden_scent=None, hidden_state=None):
         batch_size = image.size(0)
         sequence_length = image.size(1)
-        vision_lstm_output, image,hidden_vision = self.vision.forward(image,hidden_vision)
-        scent,hidden_scent = self.scent.forward(scent,hidden_scent)
+        vision_lstm_output, image, hidden_vision = self.vision.forward(image,hidden_vision)
+        if PARAM.SCENT_MODALITY:
+          scent, hidden_scent = self.scent.forward(scent, hidden_scent)
+        else:
+          scent = self.scent(scent)
         state = self.fc1.forward(state.view(batch_size*sequence_length,-1)).view(batch_size,sequence_length,-1)
         embedding = torch.cat([image,scent,state],dim=-1).permute(1,0,2)
         lstm_ouput, hidden_state = self.lstm(embedding, hidden_state)
