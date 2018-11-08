@@ -48,13 +48,13 @@ class Agent_aux():
     self.test_file = open(self.dump_dir + 'test_rewards.txt', 'w')
 
     self.curr_state = self.env.reset()
-    #self.curr_state = self.burn_in_memory(self.curr_state)
+    self.tong_count = 0
+    self.curr_state = self.burn_in_memory(self.curr_state)
     self.train_rewards = []
     self.test_rewards = []
     self.steps = 0
     self.cum_reward = 0.0
     self.save_count = 0
-    self.tong_count = 0
 
   def generate_episode(self, tmax, render=False):
     for i in range(tmax):
@@ -138,10 +138,12 @@ class Agent_aux():
     while self.burn_in > cnt:
       action = self.env.action_space.sample()
       next_state, reward, _, _ = self.env.step(action)
-
-      self.replay_buffer.add(curr_state, action, reward/100.0, next_state, 0)
-
+      if reward == 20.0:
+        self.tong_count += 1
+      elif reward == 100.0:
+        self.tong_count -= 1
+      self.replay_buffer.add(curr_state, action, reward/100.0, next_state, 0, self.tong_count)
       curr_state = next_state
+
       cnt = cnt + 1
     return curr_state
-
