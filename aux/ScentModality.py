@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import time
 import numpy as np
+import hyperparameters as PARAM
 
 class ScentModality(nn.Module):
     def __init__(self, activation=nn.ReLU):
@@ -9,13 +10,14 @@ class ScentModality(nn.Module):
         self.Activation = activation
         self.fc1  = nn.Sequential(nn.Linear(3, 4*3, bias=True), self.Activation(),
                                   nn.Linear(4*3, 8*3, bias=True), self.Activation())
-        self.lstm = nn.LSTM(input_size=8*3, hidden_size=64, num_layers=3, dropout=0, bidirectional=True)
+        if PARAM.bidirectional:
+          self.lstm = nn.LSTM(input_size=8*3, hidden_size=64, num_layers=3, dropout=0, bidirectional=True)
+        else:
+          self.lstm = nn.LSTM(input_size=8*3, hidden_size=128, num_layers=3, dropout=0)
         self.fc2  = nn.Sequential(nn.Linear(128, 64, bias=True), self.Activation(),
                                   nn.Linear(64, 32, bias=True), self.Activation())
         self.layers = [self.fc1, self.lstm, self.fc2]
         self.initializeWeights()
-
-
 
 
     def forward(self, scent, hidden_scent=None):    #B x L x 3
@@ -23,8 +25,6 @@ class ScentModality(nn.Module):
         sequence_length = scent.size(1)
         x = self.fc1(scent.view(batch_size*sequence_length,-1)).view(batch_size,sequence_length,-1).permute(1,0,2)
         x, hidden_scent = self.lstm(x,hidden_scent)
-        #x = self.fc2(x.permute(1,0,2).view(batch_size*sequence_length,-1)).view(batch_size,sequence_length,-1)
-
         x = self.fc2(x).view(batch_size, sequence_length, -1)
         return x, hidden_scent
 
@@ -44,8 +44,6 @@ class ScentModality(nn.Module):
                             pass
                 except:
                     pass
-
-
 
 
     def save(self, fname="Scent_{}.pth".format(time.time())):

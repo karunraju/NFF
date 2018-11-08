@@ -42,13 +42,13 @@ class ReplayBuffer(object):
         self._reward_storage.append(self._next_idx)
       else:
         self._reward_storage[self._reward_next_idx] = self._next_idx
-      self._reward_next_idx = (self._reward_next_idx + 1) % (self._maxsize/2)
+      self._reward_next_idx = (self._reward_next_idx + 1) % (int(self._maxsize/2))
     else:
       if self._non_reward_next_idx >= len(self._non_reward_storage):
         self._non_reward_storage.append(self._next_idx)
       else:
         self._non_reward_storage[self._non_reward_next_idx] = self._next_idx
-      self._non_reward_next_idx = (self._non_reward_next_idx + 1) % (self._maxsize/2)
+      self._non_reward_next_idx = (self._non_reward_next_idx + 1) % (int(self._maxsize/2))
 
   def _encode_sample(self, idxes):
     return [self._storage[i] for i in idxes]

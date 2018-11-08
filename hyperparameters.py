@@ -25,4 +25,6 @@ N = 50
 
 gamma = 1.0
 
-A2C_SEQUENCE_LENGTH = 5
+A2C_SEQUENCE_LENGTH = 4
+
+bidirectional = False

@@ -4,6 +4,7 @@ import time
 import numpy as np
 from aux.VisionModality import VisionModality
 from aux.ScentModality import ScentModality
+import hyperparameters as PARAM
 try:
   import cv2
 except ImportError:
@@ -18,15 +19,18 @@ class Multimodal(nn.Module):
         self.scent = ScentModality(self.Activation)
         self.fc1  = nn.Sequential(nn.Linear(state_size, 2*state_size, bias=True), self.Activation(),
                                   nn.Linear(2*state_size, 4*state_size, bias=True), self.Activation())
-        self.lstm = nn.LSTM(input_size=4*state_size+128+32, hidden_size=256, num_layers=3, dropout=0, bidirectional=True)
-        self.fc2  = nn.Sequential(nn.Linear(512, 128, bias=True), self.Activation(),
-                                  nn.Linear(128, 32, bias=True), self.Activation())
+        if PARAM.bidirectional:
+          self.lstm = nn.LSTM(input_size=4*state_size+128+32, hidden_size=256, num_layers=3, dropout=0, bidirectional=True)
+          self.fc2  = nn.Sequential(nn.Linear(512, 128, bias=True), self.Activation(),
+                                    nn.Linear(128, 32, bias=True), self.Activation())
+        else:
+          self.lstm = nn.LSTM(input_size=4*state_size+128+32, hidden_size=256, num_layers=3, dropout=0)
+          self.fc2  = nn.Sequential(nn.Linear(256, 128, bias=True), self.Activation(),
+                                    nn.Linear(128, 32, bias=True), self.Activation())
         self.policy = nn.Linear(32*seq_len, action_space, bias=True)
         self.value = nn.Linear(32*seq_len, 1, bias=True)
         self.layers = [self.vision, self.scent, self.fc1, self.lstm, self.fc2, self.policy, self.value]
         self.initializeWeights()
-
-
 
 
     def forward(self, image, scent, state, hidden_vision=None, hidden_scent=None, hidden_state=None):
@@ -63,8 +67,6 @@ class Multimodal(nn.Module):
                         pass
 
 
-
-
     def save(self, fname="Multi_{}.pth".format(time.time())):
         torch.save(self.state_dict(), fname)
         for name,parameter in self.named_parameters():
@@ -73,6 +75,7 @@ class Multimodal(nn.Module):
             except:
                 pass
         return fname
+
 
     def load(self, fname):
         self.load_state_dict(torch.load(fname))
