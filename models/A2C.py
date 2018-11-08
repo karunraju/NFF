@@ -18,7 +18,7 @@ class A2C():
     self.seq_len = PARAM.A2C_SEQUENCE_LENGTH
 
     # A2C network
-    self.A = AuxNetwork(2, action_space=action_space, seq_len=self.seq_len)
+    self.A = AuxNetwork(state_size=PARAM.STATE_SIZE, action_space=action_space, seq_len=self.seq_len)
 
     # GPU availability
     self.gpu = torch.cuda.is_available()
@@ -110,16 +110,16 @@ class A2C():
     ''' Returns an input tensor from the observation. '''
     vision = np.zeros((batch_size, seq_len, 3, 11, 11))
     scent = np.zeros((batch_size, seq_len, 3))
-    state = np.zeros((batch_size, seq_len, 2))
+    state = np.zeros((batch_size, seq_len, 4))
 
     for k, idx in enumerate(idxs):
       for j in range(seq_len):
         if idx - j < 0:
           continue
-        obs, _, _, _, _, tong_count = self.episode_buffer[idx-j]
+        obs, action, rew, _, _, tong_count = self.episode_buffer[idx-j]
         vision[k, j] = np.moveaxis(obs['vision'], -1, 0)
         scent[k, j] = obs['scent']
-        state[k, j] = np.array([int(obs['moved']), tong_count])
+        state[k, j] = np.array([action, rew, int(obs['moved']), tong_count])
 
     vision, scent, state = torch.from_numpy(vision).float(), torch.from_numpy(scent).float(), torch.from_numpy(state).float()
     if self.gpu:
@@ -131,15 +131,15 @@ class A2C():
     ''' Returns an input tensor from the observation. '''
     vision = np.zeros((batch_size, seq_len, 3, 11, 11))
     scent = np.zeros((batch_size, seq_len, 3))
-    state = np.zeros((batch_size, seq_len, 2))
+    state = np.zeros((batch_size, seq_len, 4))
     reward = np.zeros((batch_size, 1))
 
     for k, idx in enumerate(idxs):
       for j in range(seq_len):
-        obs, _, rew, _, _, tong_count = self.replay_buffer.get_single_sample(idx-j)
+        obs, action, rew, _, _, tong_count = self.replay_buffer.get_single_sample(idx-j)
         vision[k, j] = np.moveaxis(obs['vision'], -1, 0)
         scent[k, j] = obs['scent']
-        state[k, j] = np.array([int(obs['moved']), tong_count])
+        state[k, j] = np.array([action, rew, int(obs['moved']), tong_count])
         if j == 0:
           reward[k] = rew
 

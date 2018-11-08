@@ -28,3 +28,5 @@ gamma = 1.0
 A2C_SEQUENCE_LENGTH = 4
 
 bidirectional = False
+
+STATE_SIZE = 4
