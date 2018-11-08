@@ -163,7 +163,7 @@ class A2C():
 
   def get_io_from_skewed_replay_buffer(self, batch_size=1, seq_len=1):
     ''' Returns an input tensor from the observation. '''
-    vision, reward_class = self.replay_buffer.skewed_samples(batch_size)
+    vision, reward_class = self.replay_buffer.skewed_samples(batch_size, seq_len)
     vision, reward_class = torch.from_numpy(vision).float(), torch.from_numpy(reward_class).long()
     if self.gpu:
       vision, reward_class = vision.cuda(), reward_class.cuda()
