@@ -18,8 +18,12 @@ class ReplayBuffer(object):
       overflows the old memories are dropped.
     """
     self._storage = []
+    self._reward_storage = []
+    self._non_reward_storage = []
     self._maxsize = size
     self._next_idx = 0
+    self._reward_next_idx = 0
+    self._non_reward_next_idx = 0
 
   def __len__(self):
     return len(self._storage)
@@ -32,6 +36,19 @@ class ReplayBuffer(object):
     else:
       self._storage[self._next_idx] = data
     self._next_idx = (self._next_idx + 1) % self._maxsize
+
+    if reward > 0:
+      if self._reward_next_idx >= len(self._reward_storage):
+        self._reward_storage.append(self._next_idx)
+      else:
+        self._reward_storage[self._reward_next_idx] = self._next_idx
+      self._reward_next_idx = (self._reward_next_idx + 1) % (self._maxsize/2)
+    else:
+      if self._non_reward_next_idx >= len(self._non_reward_storage):
+        self._non_reward_storage.append(self._next_idx)
+      else:
+        self._non_reward_storage[self._non_reward_next_idx] = self._next_idx
+      self._non_reward_next_idx = (self._non_reward_next_idx + 1) % (self._maxsize/2)
 
   def _encode_sample(self, idxes):
     return [self._storage[i] for i in idxes]
@@ -61,6 +78,16 @@ class ReplayBuffer(object):
 
   def sample_idxs(self, batch_size):
     idxes = [random.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
+    return idxes
+
+  def skewed_sample_idxs(self, batch_size):
+    if len(self._reward_storage) > 0:
+      r_idxes = [random.randint(0, len(self._reward_storage) - 1) for _ in range(int(batch_size/2))]
+    else:
+      r_idxes = [random.randint(0, len(self._non_reward_storage) - 1) for _ in range(int(batch_size/2))]
+    nr_idxes = [random.randint(0, len(self._non_reward_storage) - 1) for _ in range(int(batch_size/2))]
+    idxes = r_idxes + nr_idxes
+    random.shuffle(idxes)
     return idxes
 
   def get_single_sample(self, idx):

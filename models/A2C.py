@@ -30,7 +30,8 @@ class A2C():
 
     # Loss Function and Optimizer
     self.optimizer = optim.Adam(self.A.parameters(), lr=self.lr, weight_decay=1e-6)
-    self.vfr_criterion = nn.MSELoss()
+    self.vfr_criterion = nn.MSELoss()           # Value Function Replay loss
+    self.rp_criterion = nn.CrossEntropyLoss()   # Reward Prediction loss
 
   def reduce_learning_rate(self):
     for pgroups in self.optimizer.param_groups:
@@ -40,6 +41,7 @@ class A2C():
     self.optimizer.zero_grad()
     loss = self.compute_A2C_loss()
     loss += self.compute_vfr_loss()
+    loss += self.compute_rp_loss()
     loss.backward()
     self.optimizer.step()
 
@@ -77,11 +79,20 @@ class A2C():
     return loss
 
   def compute_vfr_loss(self):
+    """ Computes Value Function Replay Loss. """
     idxs = self.replay_buffer.sample_idxs(20)
     vision, scent, state, reward = self.get_io_from_replay_buffer(idxs, batch_size=20, seq_len=self.seq_len)
     val, _, _, _ = self.A.forward(vision, scent, state)
 
     return self.vfr_criterion(val.view(-1, 1), reward)
+
+  def compute_rp_loss(self):
+    """ Computes Reward Prediction Loss. """
+    idxs = self.replay_buffer.skewed_sample_idxs(20)
+    vision, ground_truth = self.get_io_from_skewed_replay_buffer(idxs, batch_size=20, seq_len=3)
+    pred = self.A.predict_rewards(vision)
+
+    return self.rp_criterion(pred, ground_truth)
 
   def get_output(self, index, batch_size=1, seq_len=1, no_grad=False):
     ''' Returns output from the A network. '''
@@ -137,6 +148,25 @@ class A2C():
       vision, scent, state, reward = vision.cuda(), scent.cuda(), state.cuda(), reward.cuda()
 
     return vision, scent, state, reward
+
+  def get_io_from_skewed_replay_buffer(self, idxs, batch_size=1, seq_len=1):
+    ''' Returns an input tensor from the observation. '''
+    vision = np.zeros((batch_size, seq_len, 3, 11, 11))
+    reward_class = np.zeros(batch_size)
+
+    for k, idx in enumerate(idxs):
+      for j in range(seq_len):
+        obs, _, rew, _, _, tong_count = self.replay_buffer.get_single_sample(idx-j)
+        vision[k, j] = np.moveaxis(obs['vision'], -1, 0)
+        if j == 0 and rew > 0:
+            reward_class[k] = 1
+
+    vision, reward_class = torch.from_numpy(vision).float(), torch.from_numpy(reward_class).long()
+    if self.gpu:
+      vision, reward_class = vision.cuda(), reward_class.cuda()
+
+    return vision, reward_class
+
 
   def set_train(self):
     self.A.train()

@@ -22,9 +22,6 @@ class AuxNetwork(nn.Module):
         self.layers = [self.Multimodal, self.PixelControl, self.FeatureControl, self.RewardPrediction]
         self.initializeWeights()
 
-
-
-
     def forward(self, image, scent, state, hidden_vision=None, hidden_scent=None, hidden_state=None):
         batch_size = image.size(0)
         sequence_length = image.size(1)
@@ -38,6 +35,8 @@ class AuxNetwork(nn.Module):
         return value, policy, None, None
 
 
+    def predict_rewards(self, image):
+        return self.RewardPrediction(image)
 
     def initializeWeights(self, function=nn.init.xavier_normal_):
         for layer in self.layers:
