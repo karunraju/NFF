@@ -86,7 +86,7 @@ class ReplayBuffer(object):
     return idxes
 
   def skewed_samples(self, batch_size, seq_len):
-    r_idxes = [random.randint(0, len(self._non_reward_storage) - 1) for _ in range(int(batch_size/2))]
+    r_idxes = [random.randint(0, len(self._reward_storage) - 1) for _ in range(int(batch_size/2))]
     nr_idxes = [random.randint(0, len(self._non_reward_storage) - 1) for _ in range(int(batch_size/2))]
     idxes = list(range(batch_size))
     random.shuffle(idxes)
