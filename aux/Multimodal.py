@@ -19,7 +19,7 @@ class Multimodal(nn.Module):
         if PARAM.SCENT_MODALITY:
           self.scent = ScentModality(self.Activation)
         else:
-          self.scent = nn.Linear(3, 32, bias=True)
+          self.scent = nn.Sequential(nn.Linear(3, 32, bias=True), self.Activation())
         self.fc1  = nn.Sequential(nn.Linear(state_size, 2*state_size, bias=True), self.Activation(),
                                   nn.Linear(2*state_size, 4*state_size, bias=True), self.Activation())
         if PARAM.bidirectional:
