@@ -9,8 +9,13 @@ class VisionModality(nn.Module):
     def __init__(self, num_input_to_fc, activation=nn.ReLU):
         super().__init__()
         self.Activation = activation
-        self.cnn1 = InceptionFilter(self.Activation)
-        self.cnn2 = nn.Sequential(nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1, bias=True), self.Activation())
+        if PARAM.INCEPTION_FILTER:
+          self.cnn1 = InceptionFilter(self.Activation)
+          self.cnn2 = nn.Sequential(nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1, bias=True), self.Activation())
+        else:
+          self.cnn1 = nn.Sequential(nn.Conv2d(3, 16, kernel_size=1, stride=1, padding=0, bias=True), self.Activation())
+          self.cnn2 = nn.Sequential(nn.Conv2d(16, 32, kernel_size=1, stride=1, padding=0, bias=True), self.Activation())
+
         self.fc1  = nn.Sequential(nn.Linear(num_input_to_fc, 2*num_input_to_fc, bias=True), self.Activation(),
                                   nn.Linear(2*num_input_to_fc, 256, bias=True), self.Activation())
         if PARAM.bidirectional:
@@ -29,7 +34,7 @@ class VisionModality(nn.Module):
     def forward(self, image, hidden_vision=None):  # B x L x C x 11 x 11
         batch_size = image.size(0)
         sequence_length = image.size(1)
-        x = self.cnn1(image.view(-1, image.size(2),image.size(3),image.size(4)))
+        x = self.cnn1(image.view(-1, image.size(2), image.size(3), image.size(4)))
         x = self.cnn2(x)                    #gives BL x C x H x W
         x = self.fc1(x.view(x.size(0),-1)).view(batch_size,sequence_length,-1).permute(1,0,2)
         lstm_output,hidden_vision = self.lstm(x,hidden_vision)
