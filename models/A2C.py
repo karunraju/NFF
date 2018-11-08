@@ -88,8 +88,7 @@ class A2C():
 
   def compute_rp_loss(self):
     """ Computes Reward Prediction Loss. """
-    idxs = self.replay_buffer.skewed_sample_idxs(self.aux_batch_size)
-    vision, ground_truth = self.get_io_from_skewed_replay_buffer(idxs, batch_size=self.aux_batch_size, seq_len=3)
+    vision, ground_truth = self.get_io_from_skewed_replay_buffer(batch_size=self.aux_batch_size, seq_len=3)
     pred = self.A.predict_rewards(vision)
 
     return self.rp_criterion(pred, ground_truth)
@@ -162,18 +161,9 @@ class A2C():
 
     return vision, scent, state, reward
 
-  def get_io_from_skewed_replay_buffer(self, idxs, batch_size=1, seq_len=1):
+  def get_io_from_skewed_replay_buffer(self, batch_size=1, seq_len=1):
     ''' Returns an input tensor from the observation. '''
-    vision = np.zeros((batch_size, seq_len, 3, 11, 11))
-    reward_class = np.zeros(batch_size)
-
-    for k, idx in enumerate(idxs):
-      for j in range(seq_len):
-        obs, _, rew, _, _, tong_count = self.replay_buffer.get_single_sample(idx-j)
-        vision[k, j] = np.moveaxis(obs['vision'], -1, 0)
-        if j == 0 and rew > 0:
-            reward_class[k] = 1
-
+    vision, reward_class = self.replay_buffer.skewed_samples(batch_size)
     vision, reward_class = torch.from_numpy(vision).float(), torch.from_numpy(reward_class).long()
     if self.gpu:
       vision, reward_class = vision.cuda(), reward_class.cuda()

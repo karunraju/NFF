@@ -17,14 +17,15 @@ class ReplayBuffer(object):
       Max number of transitions to store in the buffer. When the buffer
       overflows the old memories are dropped.
     """
-    self._storage = []
-    self._reward_storage = []
-    self._non_reward_storage = []
     self._maxsize = size
+    self._storage = []
+    self._reward_storage = [[]] * self._maxsize
+    self._non_reward_storage = [[]] * self._maxsize
     self._next_idx = 0
     self._reward_next_idx = 0
     self._non_reward_next_idx = 0
     self._reward_flag = False
+    self._storage_full = False
 
   def __len__(self):
     return len(self._storage)
@@ -32,25 +33,27 @@ class ReplayBuffer(object):
   def add(self, obs_t, action, reward, obs_tp1, done, tong_count):
     data = (obs_t, action, reward, obs_tp1, done, tong_count)
 
-    if self._next_idx >= len(self._storage):
-      self._storage.append(data)
-    else:
+    if self._storage_full:
       self._storage[self._next_idx] = data
+    else:
+      self._storage.append(data)
+
+    if len(self._storage) > 2:
+      self.add_reward_storage(data)
+
+    if len(self._storage) == self._maxsize:
+      self._storage_full = True
     self._next_idx = (self._next_idx + 1) % self._maxsize
 
+  def add_reward_storage(self, data):
+    reward = data[2]
     if reward > 0:
-      if self._reward_next_idx >= len(self._reward_storage):
-        self._reward_storage.append(self._next_idx)
-      else:
-        self._reward_storage[self._reward_next_idx] = self._next_idx
-      self._reward_next_idx = (self._reward_next_idx + 1) % (int(self._maxsize/2))
+      self._reward_storage[self._reward_next_idx] = (data,  self._storage[self._next_idx - 1], self._storage[self._next_idx - 2])
+      self._reward_next_idx = (self._reward_next_idx + 1) % self._maxsize
       self._reward_flag = True
     else:
-      if self._non_reward_next_idx >= len(self._non_reward_storage):
-        self._non_reward_storage.append(self._next_idx)
-      else:
-        self._non_reward_storage[self._non_reward_next_idx] = self._next_idx
-      self._non_reward_next_idx = (self._non_reward_next_idx + 1) % (int(self._maxsize/2))
+      self._non_reward_storage[self._non_reward_next_idx] = (data,  self._storage[self._next_idx - 1], self._storage[self._next_idx - 2])
+      self._non_reward_next_idx = (self._non_reward_next_idx + 1) % self._maxsize
 
   def _encode_sample(self, idxes):
     return [self._storage[i] for i in idxes]
@@ -82,15 +85,32 @@ class ReplayBuffer(object):
     idxes = [random.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
     return idxes
 
-  def skewed_sample_idxs(self, batch_size):
-    if len(self._reward_storage) > 0:
-      r_idxes = [random.randint(0, len(self._reward_storage) - 1) for _ in range(int(batch_size/2))]
-    else:
-      r_idxes = [random.randint(0, len(self._non_reward_storage) - 1) for _ in range(int(batch_size/2))]
+  def skewed_samples(self, batch_size):
+    r_idxes = [random.randint(0, len(self._non_reward_storage) - 1) for _ in range(int(batch_size/2))]
     nr_idxes = [random.randint(0, len(self._non_reward_storage) - 1) for _ in range(int(batch_size/2))]
-    idxes = r_idxes + nr_idxes
+    idxes = list(range(batch_size))
     random.shuffle(idxes)
-    return idxes
+
+    vision = np.zeros((batch_size, seq_len, 3, 11, 11))
+    reward_class = np.zeros(batch_size)
+    itr = 0
+    for r_idx in r_idxes:
+      for j in range(3):
+        obs, _, rew, _, _, tong_count = self._reward_storage[r_idx][j]
+        vision[idxes[itr], j] = np.moveaxis(obs['vision'], -1, 0)
+        if j == 0 and rew > 0:
+            reward_class[idxes[itr]] = 1
+      itr = itr + 1
+
+    for nr_idx in nr_idxes:
+      for j in range(3):
+        obs, _, rew, _, _, tong_count = self._non_reward_storage[nr_idx][j]
+        vision[idxes[itr], j] = np.moveaxis(obs['vision'], -1, 0)
+        if j == 0 and rew > 0:
+            reward_class[idxes[itr]] = 1
+      itr = itr + 1
+
+    return vision, reward_class
 
   def get_single_sample(self, idx):
     return self._storage[idx]
