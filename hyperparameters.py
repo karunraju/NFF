@@ -30,3 +30,5 @@ A2C_SEQUENCE_LENGTH = 4
 bidirectional = False
 
 STATE_SIZE = 4
+
+AUX_TASK_BATCH_SIZE = 32

@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import time
 import numpy as np
+import hyperparameters as PARAM
 try:
   import cv2
 except ImportError:
@@ -13,27 +14,24 @@ class PixelControl(nn.Module):
         super().__init__()
         self.Activation = activation
         self.action_space=action_space
-        self.input_linear = nn.Sequential(  nn.Linear(512, 1024),            self.Activation(),
-                                            nn.Linear(1024, 2048),            self.Activation()
-                                    )
-        self.decon = nn.Sequential(         nn.ConvTranspose2d(32, 1, 4, stride=1, padding=0, output_padding=0),   self.Activation(),
-                                            nn.ConvTranspose2d(1, action_space, 4, stride=2, padding=0, output_padding=0),    self.Activation()
-                                    )
+        if PARAM.bidirectional:
+          self.input_linear = nn.Sequential(nn.Linear(512, 1024), self.Activation(),
+                                            nn.Linear(1024, 2048), self.Activation())
+        else:
+          self.input_linear = nn.Sequential(nn.Linear(256, 1024), self.Activation(),
+                                            nn.Linear(1024, 2048), self.Activation())
+        self.decon = nn.Sequential(nn.ConvTranspose2d(32, 1, 4, stride=1, padding=0, output_padding=0), self.Activation(),
+                                   nn.ConvTranspose2d(1, action_space, 4, stride=2, padding=0, output_padding=0), self.Activation())
         deconv_size=2592
-        self.ouput_common_linear = nn.Sequential(  nn.Linear(deconv_size, deconv_size//2),                                       self.Activation(),
-                                                   nn.Linear(deconv_size//2, deconv_size//4),                                    self.Activation()
-                                    )
-        self.value_linear = nn.Sequential(  nn.Linear(deconv_size//4, deconv_size//8),                                           self.Activation(),
-                                            nn.Linear(deconv_size//8, 11*11)
-                                    )
-        self.advantage_linear = nn.Sequential(  nn.Linear(deconv_size//4, deconv_size//6),                                       self.Activation(),
-                                                nn.Linear(deconv_size//6, self.action_space*11*11)
-                                    )
+        self.ouput_common_linear = nn.Sequential(nn.Linear(deconv_size, deconv_size//2), self.Activation(),
+                                                 nn.Linear(deconv_size//2, deconv_size//4), self.Activation())
+        self.value_linear = nn.Sequential(nn.Linear(deconv_size//4, deconv_size//8), self.Activation(),
+                                          nn.Linear(deconv_size//8, 11*11))
+        self.advantage_linear = nn.Sequential(nn.Linear(deconv_size//4, deconv_size//6), self.Activation(),
+                                              nn.Linear(deconv_size//6, self.action_space*11*11))
 
         self.layers = [self.input_linear, self.decon, self.ouput_common_linear, self.value_linear, self.advantage_linear]
         self.initializeWeights()
-
-
 
 
     def forward(self, lstm_out):            # B x L x 512
@@ -69,13 +67,12 @@ class PixelControl(nn.Module):
                         pass
 
 
-
-
     def save(self, fname="Pixel_{}.pth".format(time.time())):
         torch.save(self.state_dict(), fname)
         for name,parameter in self.named_parameters():
             cv2.imwrite(name,parameter)
         return fname
+
 
     def load(self, fname):
         self.load_state_dict(torch.load(fname))

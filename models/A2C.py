@@ -16,6 +16,7 @@ class A2C():
     self.N = PARAM.N
     self.gamma = PARAM.gamma
     self.seq_len = PARAM.A2C_SEQUENCE_LENGTH
+    self.aux_batch_size = PARAM.AUX_TASK_BATCH_SIZE
 
     # A2C network
     self.A = AuxNetwork(state_size=PARAM.STATE_SIZE, action_space=action_space, seq_len=self.seq_len)
@@ -32,6 +33,7 @@ class A2C():
     self.optimizer = optim.Adam(self.A.parameters(), lr=self.lr, weight_decay=1e-6)
     self.vfr_criterion = nn.MSELoss()           # Value Function Replay loss
     self.rp_criterion = nn.CrossEntropyLoss()   # Reward Prediction loss
+    self.pc_criterion = nn.MSELoss()           # Value Function Replay loss
 
   def reduce_learning_rate(self):
     for pgroups in self.optimizer.param_groups:
@@ -42,6 +44,7 @@ class A2C():
     loss = self.compute_A2C_loss()
     loss += self.compute_vfr_loss()
     loss += self.compute_rp_loss()
+    loss += self.compute_pc_loss()
     loss.backward()
     self.optimizer.step()
 
@@ -53,12 +56,12 @@ class A2C():
     n = self.N
     for t in range(T-1, -1, -1):
       vision, scent, state = self.get_input_tensor([t], seq_len=self.seq_len)
-      val, _, _, _ = self.A.forward(vision, scent, state)
+      val, _ = self.A.forward(vision, scent, state)
       if t + n >= T:
         Vend = 0
       else:
         vision_tn, scent_tn, state_tn = self.get_input_tensor([t+n], seq_len=self.seq_len)
-        Vend, _, _, _ = self.A.forward(vision_tn, scent_tn, state_tn)
+        Vend, _ = self.A.forward(vision_tn, scent_tn, state_tn)
       sum_ = 0.0
       for k in range(n):
         if t + k < T:
@@ -81,27 +84,40 @@ class A2C():
   def compute_vfr_loss(self):
     """ Computes Value Function Replay Loss. """
     idxs = self.replay_buffer.sample_idxs(20)
-    vision, scent, state, reward = self.get_io_from_replay_buffer(idxs, batch_size=20, seq_len=self.seq_len)
-    val, _, _, _ = self.A.forward(vision, scent, state)
+    vision, scent, state, reward = self.get_io_from_replay_buffer(idxs, batch_size=self.aux_batch_size, seq_len=self.seq_len)
+    val, _ = self.A.forward(vision, scent, state)
 
     return self.vfr_criterion(val.view(-1, 1), reward)
 
   def compute_rp_loss(self):
     """ Computes Reward Prediction Loss. """
     idxs = self.replay_buffer.skewed_sample_idxs(20)
-    vision, ground_truth = self.get_io_from_skewed_replay_buffer(idxs, batch_size=20, seq_len=3)
+    vision, ground_truth = self.get_io_from_skewed_replay_buffer(idxs, batch_size=self.aux_batch_size, seq_len=3)
     pred = self.A.predict_rewards(vision)
 
     return self.rp_criterion(pred, ground_truth)
+
+  def compute_pc_loss(self):
+    """ Computes Pixel Control Loss. """
+    idxs = self.replay_buffer.sample_idxs(20)
+    vision, aux_rew, actions = self.get_pc_io_from_replay_buffer(idxs, batch_size=self.aux_batch_size, seq_len=1)
+    pred = self.A.pixel_control(vision)
+    for i in range(20):
+      if i == 0:
+        pc_loss = self.pc_criterion(aux_rew[i], pred[i, actions[i]])
+      else:
+        pc_loss += self.pc_criterion(aux_rew[i], pred[i, actions[i]])
+
+    return pc_loss
 
   def get_output(self, index, batch_size=1, seq_len=1, no_grad=False):
     ''' Returns output from the A network. '''
     vision, scent, state = self.get_input_tensor(index, batch_size, seq_len)
     if no_grad:
       with torch.no_grad():
-        _, softmax, _, _ = self.A.forward(vision, scent, state)
+        _, softmax = self.A.forward(vision, scent, state)
     else:
-      _, softmax, _, _ = self.A.forward(vision, scent, state)
+      _, softmax = self.A.forward(vision, scent, state)
 
     action = np.random.choice(np.arange(3), 1, p=np.squeeze(softmax.clone().detach().numpy()))
     return softmax.view(3), action
@@ -167,6 +183,25 @@ class A2C():
 
     return vision, reward_class
 
+  def get_pc_io_from_replay_buffer(self, idxs, batch_size=1, seq_len=1):
+    ''' Returns an input tensor from the observation. '''
+    vision = np.zeros((batch_size, seq_len, 3, 11, 11))
+    aux_rew = np.zeros((batch_size, 11, 11))
+    actions = [[]]*batch_size
+
+    for k, idx in enumerate(idxs):
+      for j in range(seq_len):
+        obs, action, rew, next_obs, _, tong_count = self.replay_buffer.get_single_sample(idx-j)
+        vision[k, j] = np.moveaxis(obs['vision'], -1, 0)
+        if j == 0:
+          aux_rew[k] = np.mean(np.abs(obs['vision'] - next_obs['vision']), axis=2)
+          actions[k] = action
+
+    vision, aux_rew = torch.from_numpy(vision).float(), torch.from_numpy(aux_rew).float()
+    if self.gpu:
+      vision, aux_rew = vision.cuda(), aux_rew.cuda()
+
+    return vision, aux_rew, actions
 
   def set_train(self):
     self.A.train()

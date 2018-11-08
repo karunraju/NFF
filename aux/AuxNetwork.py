@@ -23,20 +23,19 @@ class AuxNetwork(nn.Module):
         self.initializeWeights()
 
     def forward(self, image, scent, state, hidden_vision=None, hidden_scent=None, hidden_state=None):
-        batch_size = image.size(0)
-        sequence_length = image.size(1)
         vision_lstm_ouput, value, policy = self.Multimodal.forward(image, scent, state, hidden_vision=None, hidden_scent=None, hidden_state=None)
-        #pc_action_value = self.PixelControl.forward(vision_lstm_ouput)
-        """
-        Deprecated Feature Control. Not fixing that model anymore.
-        fc_action_value = self.FeatureControl.forward(vision_lstm_ouput)
-        """
-        #return value, policy, pc_action_value, None
-        return value, policy, None, None
+        return value, policy
 
 
     def predict_rewards(self, image):
         return self.RewardPrediction(image)
+
+
+    def pixel_control(self, image, hidden_vision=None):
+        vision_lstm_ouput = self.Multimodal.vision_lstm_output(image, hidden_vision=None)
+        pc_action_value = self.PixelControl.forward(vision_lstm_ouput)
+        return pc_action_value
+
 
     def initializeWeights(self, function=nn.init.xavier_normal_):
         for layer in self.layers:
