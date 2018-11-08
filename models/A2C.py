@@ -32,7 +32,7 @@ class A2C():
     self.optimizer = optim.Adam(self.A.parameters(), lr=self.lr, weight_decay=1e-6)
     self.vfr_criterion = nn.MSELoss()           # Value Function Replay loss
     self.rp_criterion = nn.CrossEntropyLoss()   # Reward Prediction loss
-    self.pc_criterion = nn.MSELoss()           # Value Function Replay loss
+    self.pc_criterion = nn.MSELoss()            # Value Function Replay loss
 
   def reduce_learning_rate(self):
     for pgroups in self.optimizer.param_groups:
@@ -55,13 +55,11 @@ class A2C():
     T = episode_len
     n = self.N
     for t in range(T-1, -1, -1):
-      vision, scent, state = self.get_input_tensor([t], seq_len=self.seq_len)
-      val, _ = self.A.forward(vision, scent, state)
+      val = self.episode_buffer[t][-1]
       if t + n >= T:
         Vend = 0
       else:
-        vision_tn, scent_tn, state_tn = self.get_input_tensor([t+n], seq_len=self.seq_len)
-        Vend, _ = self.A.forward(vision_tn, scent_tn, state_tn)
+        Vend = self.episode_buffer[t+n][-1]
       sum_ = 0.0
       for k in range(n):
         if t + k < T:
@@ -78,8 +76,7 @@ class A2C():
     ploss = -1.0*ploss/float(T)
     vloss = vloss/float(T)
 
-    loss = ploss + vloss
-    return loss
+    return ploss + vloss
 
   def compute_vfr_loss(self):
     """ Computes Value Function Replay Loss. """
@@ -115,12 +112,12 @@ class A2C():
     vision, scent, state = self.get_input_tensor(index, batch_size, seq_len)
     if no_grad:
       with torch.no_grad():
-        _, softmax = self.A.forward(vision, scent, state)
+        val, softmax = self.A.forward(vision, scent, state)
     else:
-      _, softmax = self.A.forward(vision, scent, state)
+      val, softmax = self.A.forward(vision, scent, state)
 
     action = np.random.choice(np.arange(3), 1, p=np.squeeze(softmax.clone().detach().numpy()))
-    return softmax.view(3), action
+    return val, softmax.view(3), action
 
   def get_input_tensor(self, idxs, batch_size=1, seq_len=1):
     ''' Returns an input tensor from the observation. '''
@@ -132,7 +129,7 @@ class A2C():
       for j in range(seq_len):
         if idx - j < 0:
           continue
-        obs, action, rew, _, _, tong_count = self.episode_buffer[idx-j]
+        obs, action, rew, _, _, tong_count, _ = self.episode_buffer[idx-j]
         vision[k, j] = np.moveaxis(obs['vision'], -1, 0)
         scent[k, j] = obs['scent']
         state[k, j] = np.array([action, rew, int(obs['moved']), tong_count])
