@@ -19,13 +19,15 @@ class ReplayBuffer(object):
     """
     self._maxsize = size
     self._storage = []
-    self._reward_storage = [[]] * self._maxsize
-    self._non_reward_storage = [[]] * self._maxsize
+    self._reward_storage = []
+    self._non_reward_storage = []
     self._next_idx = 0
     self._reward_next_idx = 0
     self._non_reward_next_idx = 0
     self._reward_flag = False
     self._storage_full = False
+    self._reward_storage_full = False
+    self._non_reward_storage_full = False
 
   def __len__(self):
     return len(self._storage)
@@ -41,19 +43,31 @@ class ReplayBuffer(object):
     if len(self._storage) > 2:
       self.add_reward_storage(data)
 
-    if len(self._storage) == self._maxsize:
+    if not self._storage_full and len(self._storage) == self._maxsize:
       self._storage_full = True
     self._next_idx = (self._next_idx + 1) % self._maxsize
 
   def add_reward_storage(self, data):
     reward = data[2]
     if reward > 0:
-      self._reward_storage[self._reward_next_idx] = (data,  self._storage[self._next_idx - 1], self._storage[self._next_idx - 2])
+      if self._reward_storage_full:
+        self._reward_storage[self._reward_next_idx] = (data,  self._storage[self._next_idx - 1], self._storage[self._next_idx - 2])
+      else:
+        self._reward_storage.append((data,  self._storage[self._next_idx - 1], self._storage[self._next_idx - 2]))
       self._reward_next_idx = (self._reward_next_idx + 1) % self._maxsize
       self._reward_flag = True
     else:
-      self._non_reward_storage[self._non_reward_next_idx] = (data,  self._storage[self._next_idx - 1], self._storage[self._next_idx - 2])
+      if self._non_reward_storage_full:
+        self._non_reward_storage[self._non_reward_next_idx] = (data,  self._storage[self._next_idx - 1], self._storage[self._next_idx - 2])
+      else:
+        self._non_reward_storage.append((data,  self._storage[self._next_idx - 1], self._storage[self._next_idx - 2]))
       self._non_reward_next_idx = (self._non_reward_next_idx + 1) % self._maxsize
+
+    if not self._reward_storage_full and len(self._reward_storage) == self._maxsize:
+      self._reward_storage_full = True
+
+    if not self._non_reward_storage_full and len(self._non_reward_storage) == self._maxsize:
+      self._non_reward_storage_full = True
 
   def _encode_sample(self, idxes):
     return [self._storage[i] for i in idxes]
