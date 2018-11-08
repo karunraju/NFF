@@ -12,7 +12,6 @@ class A2C():
     self.lr = PARAM.LEARNING_RATE     # Learning Rate
     self.episode_buffer = episode_buffer
     self.replay_buffer = replay_buffer
-    self.tmax = PARAM.A2C_EPISODE_SIZE
     self.N = PARAM.N
     self.gamma = PARAM.gamma
     self.seq_len = PARAM.A2C_SEQUENCE_LENGTH
@@ -39,9 +38,9 @@ class A2C():
     for pgroups in self.optimizer.param_groups:
       pgroups['lr'] = pgroups['lr']/10.0
 
-  def train(self):
+  def train(self, episode_len):
     self.optimizer.zero_grad()
-    loss = self.compute_A2C_loss()
+    loss = self.compute_A2C_loss(episode_len)
     loss += self.compute_vfr_loss()
     loss += self.compute_rp_loss()
     loss += self.compute_pc_loss()
@@ -51,8 +50,8 @@ class A2C():
     if math.isnan(loss.item()):
       print('Loss Eploded!')
 
-  def compute_A2C_loss(self):
-    T = self.tmax
+  def compute_A2C_loss(self, episode_len):
+    T = episode_len
     n = self.N
     for t in range(T-1, -1, -1):
       vision, scent, state = self.get_input_tensor([t], seq_len=self.seq_len)

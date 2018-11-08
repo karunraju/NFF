@@ -32,7 +32,8 @@ class Agent_aux():
     self.test_time = 1000.0
 
     self.burn_in = PARAM.BURN_IN
-    self.tmax = PARAM.A2C_EPISODE_SIZE
+    self.tmax = PARAM.A2C_EPISODE_SIZE_MAX
+    self.tmin = PARAM.A2C_EPISODE_SIZE_MIN
     self.seq_len = PARAM.A2C_SEQUENCE_LENGTH
     self.replay_buffer = ReplayBuffer(PARAM.REPLAY_MEMORY_SIZE)
     self.episode_buffer = [[]] * self.tmax
@@ -77,8 +78,9 @@ class Agent_aux():
   def train(self):
     for i in range(self.training_time):
       self.net.set_train()
-      self.generate_episode(self.tmax, self.render)
-      self.net.train()
+      episode_len = np.random.randint(self.tmin, self.tmax+1)
+      self.generate_episode(episode_len, self.render)
+      self.net.train(episode_len)
       self.save_count += 1
 
   def test(self, testing_steps=100, model_file=None):
