@@ -42,7 +42,8 @@ class A2C():
     self.optimizer.zero_grad()
     loss = self.compute_A2C_loss(episode_len)
     loss += self.compute_vfr_loss()
-    loss += self.compute_rp_loss()
+    if self.replay_buffer.any_reward_instances():
+      loss += self.compute_rp_loss()
     loss += self.compute_pc_loss()
     loss.backward()
     self.optimizer.step()

@@ -24,6 +24,7 @@ class ReplayBuffer(object):
     self._next_idx = 0
     self._reward_next_idx = 0
     self._non_reward_next_idx = 0
+    self._reward_flag = False
 
   def __len__(self):
     return len(self._storage)
@@ -43,6 +44,7 @@ class ReplayBuffer(object):
       else:
         self._reward_storage[self._reward_next_idx] = self._next_idx
       self._reward_next_idx = (self._reward_next_idx + 1) % (int(self._maxsize/2))
+      self._reward_flag = True
     else:
       if self._non_reward_next_idx >= len(self._non_reward_storage):
         self._non_reward_storage.append(self._next_idx)
@@ -92,6 +94,9 @@ class ReplayBuffer(object):
 
   def get_single_sample(self, idx):
     return self._storage[idx]
+
+  def any_reward_instances(self):
+    return self._reward_flag
 
 class PrioritizedReplayBuffer(ReplayBuffer):
   def __init__(self, size, alpha):
