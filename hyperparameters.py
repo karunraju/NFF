@@ -28,12 +28,12 @@ gamma = 1.0
 
 A2C_SEQUENCE_LENGTH = 10
 
-bidirectional = False
+bidirectional = True
 
 STATE_SIZE = 4
 
 AUX_TASK_BATCH_SIZE = 32
 
-INCEPTION_FILTER = False
+INCEPTION_FILTER = True
 
-SCENT_MODALITY = False
+SCENT_MODALITY = True
