@@ -194,7 +194,8 @@ class A2C():
         obs, action, rew, next_obs, _, tong_count = self.replay_buffer.get_single_sample(idx-j)
         vision[k, j] = np.moveaxis(obs['vision'], -1, 0)
         if j == 0:
-          aux_rew[k] = np.mean(np.abs(obs['vision'] - next_obs['vision']), axis=2)
+          if obs['moved']:
+            aux_rew[k] = np.mean(np.abs(obs['vision'] - next_obs['vision']), axis=2)
           actions[k] = action
 
     vision, aux_rew = torch.from_numpy(vision).float(), torch.from_numpy(aux_rew).float()

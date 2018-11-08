@@ -60,7 +60,7 @@ class Agent_aux():
       softmax, action = self.net.get_output([i-1], seq_len=self.seq_len, batch_size=1)
       next_state, reward, _, _ = self.env.step(action)
       if render:
-        env.render()
+        self.env.render()
       if reward == 20.0:
         self.tong_count += 1
       elif reward == 100.0:
@@ -77,7 +77,7 @@ class Agent_aux():
   def train(self):
     for i in range(self.training_time):
       self.net.set_train()
-      self.generate_episode(self.tmax)
+      self.generate_episode(self.tmax, self.render)
       self.net.train()
       self.save_count += 1
 
