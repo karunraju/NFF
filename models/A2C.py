@@ -80,7 +80,7 @@ class A2C():
 
   def compute_vfr_loss(self):
     """ Computes Value Function Replay Loss. """
-    idxs = self.replay_buffer.sample_idxs(20)
+    idxs = self.replay_buffer.sample_idxs(self.aux_batch_size)
     vision, scent, state, reward = self.get_io_from_replay_buffer(idxs, batch_size=self.aux_batch_size, seq_len=self.seq_len)
     val, _ = self.A.forward(vision, scent, state)
 
@@ -88,7 +88,7 @@ class A2C():
 
   def compute_rp_loss(self):
     """ Computes Reward Prediction Loss. """
-    idxs = self.replay_buffer.skewed_sample_idxs(20)
+    idxs = self.replay_buffer.skewed_sample_idxs(self.aux_batch_size)
     vision, ground_truth = self.get_io_from_skewed_replay_buffer(idxs, batch_size=self.aux_batch_size, seq_len=3)
     pred = self.A.predict_rewards(vision)
 
@@ -96,7 +96,7 @@ class A2C():
 
   def compute_pc_loss(self):
     """ Computes Pixel Control Loss. """
-    idxs = self.replay_buffer.sample_idxs(20)
+    idxs = self.replay_buffer.sample_idxs(self.aux_batch_size)
     vision, aux_rew, actions = self.get_pc_io_from_replay_buffer(idxs, batch_size=self.aux_batch_size, seq_len=1)
     pred = self.A.pixel_control(vision)
     for i in range(20):
