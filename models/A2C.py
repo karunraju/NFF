@@ -16,6 +16,9 @@ class A2C():
     self.gamma = PARAM.gamma
     self.seq_len = PARAM.A2C_SEQUENCE_LENGTH
     self.aux_batch_size = PARAM.AUX_TASK_BATCH_SIZE
+    self.vfr_weight = PARAM.VFR_LOSS_WEIGHT
+    self.rp_weight = PARAM.RP_LOSS_WEIGHT
+    self.pc_weight = PARAM.PC_LOSS_WEIGHT
 
     # A2C network
     self.A = AuxNetwork(state_size=PARAM.STATE_SIZE, action_space=action_space, seq_len=self.seq_len)
@@ -41,10 +44,10 @@ class A2C():
   def train(self, episode_len):
     self.optimizer.zero_grad()
     loss = self.compute_A2C_loss(episode_len)
-    loss += self.compute_vfr_loss()
+    loss += self.vfr_weight * self.compute_vfr_loss()
     if self.replay_buffer.any_reward_instances():
-      loss += self.compute_rp_loss()
-    loss += self.compute_pc_loss()
+      loss += self.rp_weight * self.compute_rp_loss()
+    loss += self.pc_weight * self.compute_pc_loss()
     loss.backward()
     self.optimizer.step()
 
