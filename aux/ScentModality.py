@@ -25,7 +25,10 @@ class ScentModality(nn.Module):
         sequence_length = scent.size(1)
         x = self.fc1(scent.view(batch_size*sequence_length,-1)).view(batch_size,sequence_length,-1).permute(1,0,2)
         x, hidden_scent = self.lstm(x,hidden_scent)
-        x = self.fc2(x).view(batch_size, sequence_length, -1)
+        if PARAM.MLP_ACROSS_TIME:
+            x = self.fc2(x).view(batch_size, sequence_length, -1)
+        else:
+            x = self.fc2(x.permute(1,0,2).contiguous().view(batch_size*sequence_length,-1)).view(batch_size,sequence_length,-1)
         return x, hidden_scent
 
 
