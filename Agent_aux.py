@@ -134,7 +134,7 @@ class Agent_aux():
 
     plot(self.dump_dir + self.method, self.train_rewards)
 
-    if self.save_count > 0 and self.save_count % 30 == 0:
+    if self.save_count > 0 and self.save_count % 500 == 0:
       self.net.save_model_weights(self.save_count, self.dump_dir)
 
   def burn_in_memory(self, curr_state):
