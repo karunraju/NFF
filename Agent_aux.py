@@ -120,6 +120,7 @@ class Agent_aux():
     self.train_file.flush()
     self.cum_reward = 0.0
     if self.train_rewards[-1] > 0:
+      self.net.A.save()
       print('[%s] Train Reward: %.4f' % (len(self.train_rewards), self.train_rewards[-1]))
     self.steps = 0
 
