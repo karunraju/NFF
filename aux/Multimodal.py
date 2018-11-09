@@ -30,8 +30,12 @@ class Multimodal(nn.Module):
           self.lstm = nn.LSTM(input_size=4*state_size+128+32, hidden_size=256, num_layers=3, dropout=0)
           self.fc2  = nn.Sequential(nn.Linear(256, 128, bias=True), self.Activation(),
                                     nn.Linear(128, 32, bias=True), self.Activation())
-        self.policy = nn.Linear(32*seq_len, action_space, bias=True)
-        self.value = nn.Linear(32*seq_len, 1, bias=True)
+        if PARAM.MLP_ACROSS_TIME:
+            self.policy = nn.Linear(32*seq_len, action_space, bias=True)
+            self.value = nn.Linear(32*seq_len, 1, bias=True)
+        else:
+            self.policy = nn.Linear(32, action_space, bias=True)
+            self.value = nn.Linear(32, 1, bias=True)
         self.layers = [self.vision, self.scent, self.fc1, self.lstm, self.fc2, self.policy, self.value]
         self.initializeWeights()
 
@@ -47,10 +51,17 @@ class Multimodal(nn.Module):
         state = self.fc1.forward(state.view(batch_size*sequence_length,-1)).view(batch_size,sequence_length,-1)
         embedding = torch.cat([image,scent,state],dim=-1).permute(1,0,2)
         lstm_ouput, hidden_state = self.lstm(embedding, hidden_state)
-        x = self.fc2(lstm_ouput).view(batch_size*sequence_length, -1)
-        value = self.value(x.view(batch_size,-1))
-        policy = self.policy(x.view(batch_size,-1))
-        return vision_lstm_output, value, nn.functional.softmax(policy,dim=-1)
+        if PARAM.MLP_ACROSS_TIME:
+            x = self.fc2(lstm_ouput).view(batch_size*sequence_length, -1)
+            value = self.value(x.view(batch_size,-1))
+            policy = self.policy(x.view(batch_size,-1))
+            return vision_lstm_output, value, nn.functional.softmax(policy,dim=-1)
+        else:
+            lstm_ouput = lstm_ouput.permute(1,0,2).view(batch_size*sequence_length,-1)
+            x = self.fc2(lstm_ouput)
+            value = self.value(x).view(batch_size,sequence_length,-1)
+            policy = self.policy(x).view(batch_size,sequence_length,-1)
+            return vision_lstm_output, value[:,-1,:].squeeze(1), nn.functional.softmax(policy,dim=-1)[:,-1,:].squeeze(1)
 
 
     def vision_lstm_output(self, image, hidden_vision=None):

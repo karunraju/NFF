@@ -38,10 +38,13 @@ class VisionModality(nn.Module):
         x = self.cnn2(x)                    #gives BL x C x H x W
         x = self.fc1(x.view(x.size(0),-1)).view(batch_size,sequence_length,-1).permute(1,0,2)
         lstm_output,hidden_vision = self.lstm(x,hidden_vision)
-
-        x = self.fc2(lstm_output).view(batch_size, sequence_length, -1)
-        return lstm_output.permute(1, 0, 2), x, hidden_vision
-
+        if PARAM.MLP_ACROSS_TIME:
+            x = self.fc2(lstm_output).view(batch_size, sequence_length, -1)
+            return lstm_output.permute(1, 0, 2), x, hidden_vision
+        else:        
+            lstm_output = lstm_output.permute(1,0,2).view(batch_size*sequence_length,-1)
+            x = self.fc2(lstm_output).view(batch_size,sequence_length,-1)
+            return lstm_output.view(batch_size,sequence_length,-1),x,hidden_vision 
 
     def initializeWeights(self, function=nn.init.xavier_normal_):
         for layer in self.layers:
