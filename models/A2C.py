@@ -182,7 +182,7 @@ class A2C():
         vision[k, j] = np.moveaxis(obs['vision'], -1, 0)
         if j == 0:
           if obs['moved']:
-            aux_rew[k] = np.mean(np.abs(obs['vision'] - next_obs['vision']), axis=2)/255.0
+            aux_rew[k] = np.mean(np.abs(obs['vision'] - next_obs['vision']), axis=2)
           actions[k] = action
 
     vision, aux_rew = torch.from_numpy(vision).float(), torch.from_numpy(aux_rew).float()

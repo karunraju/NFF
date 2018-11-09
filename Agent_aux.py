@@ -62,10 +62,13 @@ class Agent_aux():
       next_state, reward, _, _ = self.env.step(action)
       if render:
         self.env.render()
-      if reward == 20.0:
-        self.tong_count += 1
+
+      if reward == 0:
+        if self.curr_state['vision'][5, 6, 0] == 1.0:
+          self.tong_count += 1
       elif reward == 100.0:
         self.tong_count -= 1
+
       self.episode_buffer[i] = (self.curr_state, action, reward/100.0, next_state, softmax, self.tong_count, val)
       self.replay_buffer.add(self.curr_state, action, reward/100.0, next_state, 0, self.tong_count)
       self.curr_state = next_state
@@ -116,7 +119,8 @@ class Agent_aux():
     self.train_file.write('\n')
     self.train_file.flush()
     self.cum_reward = 0.0
-    print('Train Reward: %.4f' % (self.train_rewards[-1]))
+    if self.train_rewards[-1] > 0:
+      print('[%s] Train Reward: %.4f' % (len(self.train_rewards), self.train_rewards[-1]))
     self.steps = 0
 
     x = list(range(len(self.train_rewards)))
