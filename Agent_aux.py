@@ -120,7 +120,7 @@ class Agent_aux():
     self.train_file.flush()
     self.cum_reward = 0.0
     if self.train_rewards[-1] > 0:
-      self.net.A.save()
+      self.net.A.save("checkpoint.pth")
       print('[%d] Train Reward: %.4f' % (len(self.train_rewards), self.train_rewards[-1]))
     self.steps = 0
 
@@ -134,8 +134,8 @@ class Agent_aux():
 
     plot(self.dump_dir + self.method, self.train_rewards)
 
-    if self.save_count > 0 and self.save_count % 500 == 0:
-      self.net.save_model_weights(self.save_count, self.dump_dir)
+#    if self.save_count > 0 and self.save_count % 500 == 0:
+#      self.net.save_model_weights(self.save_count, self.dump_dir)
 
   def burn_in_memory(self, curr_state):
     # Initialize your replay memory with a burn_in number of episodes / transitions.
