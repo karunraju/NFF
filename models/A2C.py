@@ -8,8 +8,8 @@ import hyperparameters as PARAM
 from aux.AuxNetwork import AuxNetwork
 
 class A2C():
-  def __init__(self, episode_buffer, replay_buffer, action_space=3, N=100):
-    self.lr = PARAM.LEARNING_RATE     # Learning Rate
+  def __init__(self, episode_buffer, replay_buffer, action_space=3):
+    self.lr = PARAM.LEARNING_RATE
     self.episode_buffer = episode_buffer
     self.replay_buffer = replay_buffer
     self.N = PARAM.N
@@ -181,10 +181,10 @@ class A2C():
 
     for k, idx in enumerate(idxs):
       for j in range(seq_len):
-        obs, action, rew, next_obs, _, tong_count = self.replay_buffer.get_single_sample(idx-j)
+        obs, action, _, next_obs, _, _ = self.replay_buffer.get_single_sample(idx-j)
         vision[k, j] = np.moveaxis(obs['vision'], -1, 0)
         if j == 0:
-          if obs['moved']:
+          if next_obs['moved']:
             aux_rew[k] = np.mean(np.abs(obs['vision'] - next_obs['vision']), axis=2)
           actions[k] = action
 
