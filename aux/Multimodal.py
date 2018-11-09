@@ -57,7 +57,7 @@ class Multimodal(nn.Module):
             policy = self.policy(x.view(batch_size,-1))
             return vision_lstm_output, value, nn.functional.softmax(policy,dim=-1)
         else:
-            lstm_ouput = lstm_ouput.permute(1,0,2).view(batch_size*sequence_length,-1)
+            lstm_ouput = lstm_ouput.permute(1,0,2).contiguous().view(batch_size*sequence_length,-1)
             x = self.fc2(lstm_ouput)
             value = self.value(x).view(batch_size,sequence_length,-1)
             policy = self.policy(x).view(batch_size,sequence_length,-1)

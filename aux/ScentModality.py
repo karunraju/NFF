@@ -28,7 +28,7 @@ class ScentModality(nn.Module):
         if PARAM.MLP_ACROSS_TIME:
             x = self.fc2(x).view(batch_size, sequence_length, -1)
         else:
-            x = self.fc2(x.permute(1,0,2).view(batch_size*sequence_length,-1)).view(batch_size,sequence_length,-1)
+            x = self.fc2(x.permute(1,0,2).contiguous().view(batch_size*sequence_length,-1)).view(batch_size,sequence_length,-1)
         return x, hidden_scent
 
 

@@ -42,7 +42,7 @@ class VisionModality(nn.Module):
             x = self.fc2(lstm_output).view(batch_size, sequence_length, -1)
             return lstm_output.permute(1, 0, 2), x, hidden_vision
         else:        
-            lstm_output = lstm_output.permute(1,0,2).view(batch_size*sequence_length,-1)
+            lstm_output = lstm_output.permute(1,0,2).contiguous().view(batch_size*sequence_length,-1)
             x = self.fc2(lstm_output).view(batch_size,sequence_length,-1)
             return lstm_output.view(batch_size,sequence_length,-1),x,hidden_vision 
 
