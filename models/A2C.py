@@ -115,7 +115,7 @@ class A2C():
     else:
       val, softmax = self.A.forward(vision, scent, state)
 
-    action = np.random.choice(np.arange(3), 1, p=np.squeeze(softmax.clone().detach().numpy()))
+    action = np.random.choice(np.arange(3), 1, p=np.squeeze(softmax.clone().cpu().detach().numpy()))
     return val, softmax.view(3), action
 
   def get_input_tensor(self, idxs, batch_size=1, seq_len=1):
