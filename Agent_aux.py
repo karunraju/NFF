@@ -120,7 +120,7 @@ class Agent_aux():
     self.train_file.flush()
     self.cum_reward = 0.0
     if self.train_rewards[-1] > 0:
-      print('[%s] Train Reward: %.4f' % (len(self.train_rewards), self.train_rewards[-1]))
+      print('[%d] Train Reward: %.4f' % (len(self.train_rewards), self.train_rewards[-1]))
     self.steps = 0
 
     x = list(range(len(self.train_rewards)))

@@ -41,15 +41,15 @@ class ReplayBuffer(object):
       self._storage.append(data)
 
     if len(self._storage) > 2:
-      self.add_reward_storage(data)
+      self.add_reward_storage(data, tong_count - self._storage[self._next_idx - 1][-1])
 
     if not self._storage_full and len(self._storage) == self._maxsize:
       self._storage_full = True
     self._next_idx = (self._next_idx + 1) % self._maxsize
 
-  def add_reward_storage(self, data):
+  def add_reward_storage(self, data, tong_count_diff):
     reward = data[2]
-    if reward > 0:
+    if reward > 0 or tong_count_diff == 1:
       if self._reward_storage_full:
         self._reward_storage[self._reward_next_idx] = (data,  self._storage[self._next_idx - 1], self._storage[self._next_idx - 2])
       else:
@@ -112,16 +112,13 @@ class ReplayBuffer(object):
       for j in range(3):
         obs, _, rew, _, _, tong_count = self._reward_storage[r_idx][j]
         vision[idxes[itr], j] = np.moveaxis(obs['vision'], -1, 0)
-        if j == 0 and rew > 0:
-            reward_class[idxes[itr]] = 1
+        reward_class[idxes[itr]] = 1
       itr = itr + 1
 
     for nr_idx in nr_idxes:
       for j in range(3):
         obs, _, rew, _, _, tong_count = self._non_reward_storage[nr_idx][j]
         vision[idxes[itr], j] = np.moveaxis(obs['vision'], -1, 0)
-        if j == 0 and rew > 0:
-            reward_class[idxes[itr]] = 1
       itr = itr + 1
 
     return vision, reward_class
