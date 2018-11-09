@@ -59,6 +59,9 @@ class Agent_aux():
   def generate_episode(self, tmax, render=False):
     for i in range(tmax):
       val, softmax, action = self.net.get_output([i-1], seq_len=self.seq_len, batch_size=1)
+      if i % PARAM.ACTION_REPEAT != 0:
+        action = 0
+
       next_state, reward, _, _ = self.env.step(action)
       if render:
         self.env.render()
