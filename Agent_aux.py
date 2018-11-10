@@ -57,9 +57,12 @@ class Agent_aux():
     self.save_count = 0
 
   def generate_episode(self, tmax, render=False):
-    for i in range(tmax):
-      val, softmax, action = self.net.get_output([i-1], seq_len=self.seq_len, batch_size=1)
-      if i % PARAM.ACTION_REPEAT != 0:
+    #for i in range(tmax):
+    ctr, i = (0, 0)
+    while ctr < tmax:
+      if i % PARAM.ACTION_REPEAT == 0:
+        val, softmax, action = self.net.get_output([ctr-1], seq_len=self.seq_len, batch_size=1)
+      else:
         action = 0
 
       next_state, reward, _, _ = self.env.step(action)
@@ -72,10 +75,13 @@ class Agent_aux():
       elif reward == 100.0:
         self.tong_count -= 1
 
-      self.episode_buffer[i] = (self.curr_state, action, reward/100.0, next_state, softmax, self.tong_count, val)
+      if i % PARAM.ACTION_REPEAT == 0:
+        self.episode_buffer[ctr] = (self.curr_state, action, reward/100.0, next_state, softmax, self.tong_count, val)
+        ctr += 1
       self.replay_buffer.add(self.curr_state, action, reward/100.0, next_state, 0, self.tong_count)
       self.curr_state = next_state
 
+      i += 1
       self.steps += 1
       self.cum_reward += reward
       if self.steps % 100 == 0:
