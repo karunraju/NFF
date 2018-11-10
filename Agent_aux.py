@@ -74,14 +74,17 @@ class Agent_aux():
       else:
         psuedo_reward = 0.0
 
+      tong_reward = 0.0
       if reward == 0:
         if self.curr_state['vision'][5, 6, 0] == 1.0:
           self.tong_count += 1
+          if PARAM.REWARD_SHAPING:
+            tong_reward = 10.0
       elif reward == 100.0:
         self.tong_count -= 1
 
       if i % PARAM.ACTION_REPEAT == 0:
-        self.episode_buffer[ctr] = (self.curr_state, action, (reward/100.0 + psuedo_reward), next_state, softmax, self.tong_count, val)
+        self.episode_buffer[ctr] = (self.curr_state, action, ((reward+tong_reward)/100.0 + psuedo_reward), next_state, softmax, self.tong_count, val)
         ctr += 1
       self.replay_buffer.add(self.curr_state, action, reward/100.0, next_state, 0, self.tong_count)
       self.curr_state = next_state
