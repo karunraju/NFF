@@ -49,6 +49,7 @@ class A2C():
       loss += self.rp_weight * self.compute_rp_loss()
     loss += self.pc_weight * self.compute_pc_loss()
     loss.backward()
+    torch.nn.utils.clip_grad_value_(self.A.parameters(), PARAM.GRAD_CLIP_VAL)
     self.optimizer.step()
 
     if math.isnan(loss.item()):
