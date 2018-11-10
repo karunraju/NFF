@@ -69,6 +69,11 @@ class Agent_aux():
       if render:
         self.env.render()
 
+      if PARAM.REWARD_SHAPING:
+        psuedo_reward = self.compute_psuedo_reward(next_state['vision'])
+      else:
+        psuedo_reward = 0.0
+
       if reward == 0:
         if self.curr_state['vision'][5, 6, 0] == 1.0:
           self.tong_count += 1
@@ -76,7 +81,7 @@ class Agent_aux():
         self.tong_count -= 1
 
       if i % PARAM.ACTION_REPEAT == 0:
-        self.episode_buffer[ctr] = (self.curr_state, action, reward/100.0, next_state, softmax, self.tong_count, val)
+        self.episode_buffer[ctr] = (self.curr_state, action, (reward/100.0 + psuedo_reward), next_state, softmax, self.tong_count, val)
         ctr += 1
       self.replay_buffer.add(self.curr_state, action, reward/100.0, next_state, 0, self.tong_count)
       self.curr_state = next_state
@@ -86,6 +91,16 @@ class Agent_aux():
       self.cum_reward += reward
       if self.steps % 100 == 0:
         self.plot_train_stats()
+
+  def compute_psuedo_reward(self, vision):
+    avg = np.mean(vision[3:8, 3:8, :], axis=2)
+    idxs = avg == 0.5
+    avg[idxs] = 0.0
+    reward = np.sum(avg) - 1.0/3.0
+    if reward < 0.001:
+      return 0.0
+
+    return reward
 
   def train(self):
     for i in range(self.training_time):
