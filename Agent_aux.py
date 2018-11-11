@@ -59,6 +59,8 @@ class Agent_aux():
   def generate_episode(self, tmax, render=False):
     #for i in range(tmax):
     ctr, i = (0, 0)
+    self.her_reward_buffer = np.zeros(tmax)
+    her_reward = 0
     while ctr < tmax:
       if i % PARAM.ACTION_REPEAT == 0:
         val, softmax, action = self.net.get_output([ctr-1], seq_len=self.seq_len, batch_size=1)
@@ -83,8 +85,11 @@ class Agent_aux():
       elif reward == 100.0:
         self.tong_count -= 1
 
+      her_reward += reward
       if i % PARAM.ACTION_REPEAT == 0:
         self.episode_buffer[ctr] = (self.curr_state, action, ((reward+tong_reward)/100.0 + psuedo_reward), next_state, softmax, self.tong_count, val)
+        self.her_reward_buffer[ctr] = her_reward
+        her_reward = 0
         ctr += 1
       self.replay_buffer.add(self.curr_state, action, reward/100.0, next_state, 0, self.tong_count)
       self.curr_state = next_state
@@ -105,11 +110,21 @@ class Agent_aux():
 
     return reward
 
+  def hind_sight_experience_replay(self, episode_len):
+    her_reward = 0
+    her_decay = PARAM.HER_DECAY
+    for i in range(episode_len - 1, -1, -1):
+      obs, action, reward, next_obs, softmax, tong_count, val = self.episode_buffer[i]
+      self.episode_buffer[i] = (obs, action, (self.her_reward_buffer[i] + her_reward*her_decay)/100.0, next_obs, softmax, tong_count, val)
+      her_reward = her_reward*her_decay + self.her_reward_buffer[i]
+
   def train(self):
     for i in range(self.training_time):
       self.net.set_train()
       episode_len = np.random.randint(self.tmin, self.tmax+1)
       self.generate_episode(episode_len, self.render)
+      if PARAM.HER:
+        self.hind_sight_experience_replay(episode_len)
       self.net.train(episode_len)
       self.save_count += 1
 
