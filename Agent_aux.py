@@ -173,6 +173,7 @@ class Agent_aux():
     self.cum_reward = 0.0
     if self.train_rewards[-1] > 0:
       self.net.A.save("checkpoint.pth")
+      self.net.Ensemble.save()
       print('[%d] Train Reward: %.4f' % (len(self.train_rewards), self.train_rewards[-1]))
     self.steps = 0
 

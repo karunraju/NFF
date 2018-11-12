@@ -31,6 +31,13 @@ class Ensemble():
 		else:
 			self.down_shift()
 
+
+
+
+
+
+
+
 	def get_action_repeat(self):
 		return self.current_action_repeat
 
@@ -47,8 +54,13 @@ class Ensemble():
 		for i,net in enumerate(list_of_networks):
 			net.save("ensemble_model_{}".format(i))
 
-	def load(self):		#saving only the models for now
-		raise NotImplementedError
+	def load(self, list_of_files=None):		#saving only the models for now
+		if list_of_files is None:
+			for i,net in enumerate(list_of_networks):
+				net.load("ensemble_model_{}".format(i))
+		else:
+			for i,net in enumerate(list_of_networks):
+				net.load(list_of_files[i])
 
 	def up_shift(self):
 		if self.current!=len(self.list_of_networks)-1:
