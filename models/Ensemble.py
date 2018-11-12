@@ -51,7 +51,7 @@ class Ensemble():
 		return self.current_network
 
 	def save(self):		#saving only the models for now
-		for i,net in enumerate(self.ist_of_networks):
+		for i,net in enumerate(self.list_of_networks):
 			net.save("ensemble_model_{}.pth".format(i))
 
 	def load(self, list_of_files=None):		#saving only the models for now
