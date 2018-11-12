@@ -35,9 +35,12 @@ class Agent_aux():
     self.tmax = PARAM.A2C_EPISODE_SIZE_MAX
     self.tmin = PARAM.A2C_EPISODE_SIZE_MIN
     self.seq_len = PARAM.A2C_SEQUENCE_LENGTH
-    self.replay_buffer = ReplayBuffer(PARAM.REPLAY_MEMORY_SIZE)
     self.episode_buffer = [[]] * self.tmax
-    self.net = A2C(self.episode_buffer, self.replay_buffer)
+    self.net = A2C(self.episode_buffer, ReplayBuffer)
+    self.replay_buffer = self.net.get_replay_buffer
+
+
+
 
     cur_dir = os.getcwd()
     self.dump_dir = cur_dir + '/tmp_' + self.method + '_' + time.strftime("%Y%m%d-%H%M%S") + '/'
@@ -61,13 +64,17 @@ class Agent_aux():
     ctr, i = (0, 0)
     self.her_reward_buffer = np.zeros(tmax)
     her_reward = 0
+    self.net.source_context()
+    rewards_list = []
     while ctr < tmax:
-      if i % PARAM.ACTION_REPEAT == 0:
+      if i % self.net.get_action_repeat() == 0:
         val, softmax, action = self.net.get_output([ctr-1], seq_len=self.seq_len, batch_size=1)
       else:
         action = 0
 
-      next_state, reward, _, _ = self.env.step(action)
+      next_state, reward, _, _ = self.env.step(action)      
+      rewards_list.append(reward)
+      self.net.monitor(rewards_list)
       if render:
         self.env.render()
 
@@ -86,12 +93,12 @@ class Agent_aux():
         self.tong_count -= 1
 
       her_reward += reward
-      if i % PARAM.ACTION_REPEAT == 0:
+      if i % self.net.get_action_repeat() == 0:
         self.episode_buffer[ctr] = (self.curr_state, action, ((reward+tong_reward)/100.0 + psuedo_reward), next_state, softmax, self.tong_count, val)
         self.her_reward_buffer[ctr] = her_reward
         her_reward = 0
         ctr += 1
-      self.replay_buffer.add(self.curr_state, action, reward/100.0, next_state, 0, self.tong_count)
+      self.replay_buffer().add(self.curr_state, action, reward/100.0, next_state, 0, self.tong_count)
       self.curr_state = next_state
 
       i += 1
@@ -119,13 +126,13 @@ class Agent_aux():
       her_reward = her_reward*her_decay + self.her_reward_buffer[i]
 
   def train(self):
-    for i in range(self.training_time):
+    for self.episode_number in range(self.training_time):
       self.net.set_train()
       episode_len = np.random.randint(self.tmin, self.tmax+1)
       self.generate_episode(episode_len, self.render)
       if PARAM.HER:
         self.hind_sight_experience_replay(episode_len)
-      self.net.train(episode_len)
+      self.net.train(self.episode_number,episode_len)
       self.save_count += 1
 
   def test(self, testing_steps=100, model_file=None):
@@ -189,7 +196,7 @@ class Agent_aux():
         self.tong_count += 1
       elif reward == 100.0:
         self.tong_count -= 1
-      self.replay_buffer.add(curr_state, action, reward/100.0, next_state, 0, self.tong_count)
+      self.replay_buffer().add(curr_state, action, reward/100.0, next_state, 0, self.tong_count)
       curr_state = next_state
 
       cnt = cnt + 1

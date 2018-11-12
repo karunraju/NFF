@@ -6,12 +6,12 @@ import numpy as np
 
 import hyperparameters as PARAM
 from aux.AuxNetwork import AuxNetwork
+from models.Ensemble import Ensemble
 
 class A2C():
-  def __init__(self, episode_buffer, replay_buffer, action_space=3):
+  def __init__(self, episode_buffer, ReplayBuffer, action_space=3):
     self.lr = PARAM.LEARNING_RATE
     self.episode_buffer = episode_buffer
-    self.replay_buffer = replay_buffer
     self.N = PARAM.N
     self.gamma = PARAM.gamma
     self.seq_len = PARAM.A2C_SEQUENCE_LENGTH
@@ -19,35 +19,48 @@ class A2C():
     self.vfr_weight = PARAM.VFR_LOSS_WEIGHT
     self.rp_weight = PARAM.RP_LOSS_WEIGHT
     self.pc_weight = PARAM.PC_LOSS_WEIGHT
+    self.gpu = torch.cuda.is_available()
 
     # A2C network
-    self.A = AuxNetwork(state_size=PARAM.STATE_SIZE, action_space=action_space, seq_len=self.seq_len)
-
-    # GPU availability
-    self.gpu = torch.cuda.is_available()
-    if self.gpu:
-      print("Using GPU")
-      self.A = self.A.cuda()
+    if PARAM.ENSEMBLE==0:
+      self.A = AuxNetwork(state_size=PARAM.STATE_SIZE, action_space=action_space, seq_len=self.seq_len)
+      # GPU availability
+      if self.gpu:
+        print("Using GPU")
+        self.A = self.A.cuda()
+      else:
+        print("Using CPU")
+      self.replay_buffer = ReplayBuffer(PARAM.REPLAY_MEMORY_SIZE)
+      # Loss Function and Optimizer
+      self.optimizer = optim.Adam(self.A.parameters(), lr=self.lr, weight_decay=1e-6)
     else:
-      print("Using CPU")
+      self.Ensemble = Ensemble(PARAM.ENSEMBLE, action_space, self.seq_len, ReplayBuffer)
+      self.source_context()
 
-    # Loss Function and Optimizer
-    self.optimizer = optim.Adam(self.A.parameters(), lr=self.lr, weight_decay=1e-6)
     self.vfr_criterion = nn.MSELoss()           # Value Function Replay loss
     self.rp_criterion = nn.CrossEntropyLoss()   # Reward Prediction loss
     self.pc_criterion = nn.MSELoss()            # Value Function Replay loss
+
+  def source_context(self):
+    if PARAM.ENSEMBLE==0:
+      return
+    self.Ensemble.update_context()
+    self.A = self.Ensemble.get_network()
+    self.optimizer = self.Ensemble.get_optimizer()
+    self.replay_buffer = self.Ensemble.get_replay_buffer()
 
   def reduce_learning_rate(self):
     for pgroups in self.optimizer.param_groups:
       pgroups['lr'] = pgroups['lr']/10.0
 
-  def train(self, episode_len):
+  def train(self, episode_number, episode_len):
     self.optimizer.zero_grad()
     loss = self.compute_A2C_loss(episode_len)
-    loss += self.vfr_weight * self.compute_vfr_loss()
-    if self.replay_buffer.any_reward_instances():
-      loss += self.rp_weight * self.compute_rp_loss()
-    loss += self.pc_weight * self.compute_pc_loss()
+    if episode_number>5:
+      loss += self.vfr_weight * self.compute_vfr_loss()
+      if self.replay_buffer.any_reward_instances():
+        loss += self.rp_weight * self.compute_rp_loss()
+      loss += self.pc_weight * self.compute_pc_loss()
     loss.backward()
     torch.nn.utils.clip_grad_value_(self.A.parameters(), PARAM.GRAD_CLIP_VAL)
     self.optimizer.step()
@@ -113,6 +126,9 @@ class A2C():
   def get_output(self, index, batch_size=1, seq_len=1, no_grad=False):
     ''' Returns output from the A network. '''
     vision, scent, state = self.get_input_tensor(index, batch_size, seq_len)
+    if PARAM.ENSEMBLE!=0:
+      self.A = self.Ensemble.get_network()
+      self.optimizer = self.Ensemble.get_optimizer()
     if no_grad:
       with torch.no_grad():
         val, softmax = self.A.forward(vision, scent, state)
@@ -203,6 +219,9 @@ class A2C():
 
   def save_model_weights(self, suffix, path='./'):
     # Helper function to save your model / weights.
+    if PARAM.ENSEMBLE!=0:
+      self.Ensemble.save()
+      return 
     state = {
               'epoch': suffix,
               'state_dict': self.A.state_dict(),
@@ -212,6 +231,24 @@ class A2C():
 
   def load_model(self, model_file):
     # Helper function to load an existing model.
+    if PARAM.ENSEMBLE!=0:
+      self.Ensemble.load()
+      return
     state = torch.load(model_file)
     self.A.load_state_dict(state['state_dict'])
     self.optimizer.load_state_dict(state['optimizer'])
+
+  def get_replay_buffer(self):
+    if PARAM.ENSEMBLE!=0:
+      return self.Ensemble.get_replay_buffer()
+    return self.replay_buffer
+
+  def get_action_repeat(self):
+    if PARAM.ENSEMBLE!=0:
+      return self.Ensemble.get_action_repeat()
+    return PARAM.ACTION_REPEAT
+
+  def monitor(self, rewards_list):
+    if PARAM.ENSEMBLE==0:
+      return
+    self.Ensemble.analyze_rewards(rewards_list)

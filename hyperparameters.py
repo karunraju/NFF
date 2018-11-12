@@ -1,6 +1,6 @@
 BATCH_SIZE = 32
 
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.1
 
 DISCOUNT_FACTOR = 0.9
 
@@ -38,7 +38,7 @@ INCEPTION_FILTER = True
 
 SCENT_MODALITY = True
 
-MLP_ACROSS_TIME = True
+MLP_ACROSS_TIME = False
 
 VFR_LOSS_WEIGHT = 1
 
@@ -46,7 +46,7 @@ RP_LOSS_WEIGHT = 1
 
 PC_LOSS_WEIGHT = 0.1
 
-ACTION_REPEAT= 4
+ACTION_REPEAT= [2,8]		#If ensemble is non-zero, actions repeat is expected to be a list
 
 GRAD_CLIP_VAL = 5.0
 
@@ -56,3 +56,5 @@ REWARD_SHAPING = False
 HER = True
 
 HER_DECAY = 0.9
+
+ENSEMBLE=2
