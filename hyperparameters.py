@@ -16,7 +16,7 @@ A2C_EPISODE_SIZE_MIN = 50
 A2C_EPISODE_SIZE_MAX = 100
 N = 50
 gamma = 1.0
-A2C_SEQUENCE_LENGTH = 20
+A2C_SEQUENCE_LENGTH = 10
 
 
 
@@ -35,6 +35,7 @@ HER_DECAY = 0.9
 STATE_SIZE = 4
 ENSEMBLE=2
 ACTION_REPEAT= [2,8]		#If ensemble is non-zero, actions repeat is expected to be a list
+SWITCH_FREQUENCY = 20
 INCEPTION_FILTER = True
 SCENT_MODALITY = True
 MLP_ACROSS_TIME = False

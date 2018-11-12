@@ -74,7 +74,10 @@ class Agent_aux():
 
       next_state, reward, _, _ = self.env.step(action)      
       rewards_list.append(reward)
-      self.net.monitor(rewards_list)
+      if ctr % PARAM.SWITCH_FREQUENCY==0:
+        self.net.monitor(rewards_list)
+        self.net.source_context()
+        rewards_list = []
       if render:
         try:
           self.env.render()
