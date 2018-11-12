@@ -61,12 +61,13 @@ class AuxNetwork(nn.Module):
 
     def save(self, fname="Aux_{}.pth".format(time.time())):
         torch.save(self.state_dict(), fname)
+        """
         for name,parameter in self.named_parameters():
             try:
                 cv2.imwrite("{}.png".format(name),parameter.clone().detach().cpu().numpy())
             except:
                 pass
+        """
         return fname
-
     def load(self, fname):
         self.load_state_dict(torch.load(fname))
