@@ -76,7 +76,10 @@ class Agent_aux():
       rewards_list.append(reward)
       self.net.monitor(rewards_list)
       if render:
-        self.env.render()
+        try:
+          self.env.render()
+        except:
+          pass
 
       if PARAM.REWARD_SHAPING:
         psuedo_reward = self.compute_psuedo_reward(next_state['vision'])
