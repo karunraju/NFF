@@ -25,8 +25,8 @@ def main():
 	else:
 		list_of_networks = man.list([AuxNetwork(state_size=PARAM.STATE_SIZE, action_space=3, seq_len=PARAM.A2C_SEQUENCE_LENGTH) for i in range(PARAM.ENSEMBLE)])		
 	args = parse_arguments()
-	with Pool(PARAM.AGENTS) as p:
-		p.map(train, [list_of_networks]*PARAM.AGENTS, chunksize=1)
+	p=Pool(PARAM.AGENTS)
+	p.map(train, [list_of_networks]*PARAM.AGENTS, chunksize=1)
 
 
 if __name__ == '__main__':
