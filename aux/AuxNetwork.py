@@ -13,7 +13,7 @@ except ImportError:
 
 class AuxNetwork(nn.Module):
     def __init__(self, state_size, seq_len=1, action_space=3, num_input_to_fc=3872, activation=nn.ReLU):
-        super().__init__()
+        super(AuxNetwork, self).__init__()
         self.Activation = activation
         self.Multimodal = Multimodal(num_input_to_fc, state_size, action_space, activation, seq_len=seq_len)
         self.PixelControl = PixelControl(state_size, action_space, activation)

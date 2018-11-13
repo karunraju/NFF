@@ -13,7 +13,7 @@ except ImportError:
 
 class Multimodal(nn.Module):
     def __init__(self, num_input_to_fc, state_size, action_space, activation=nn.ReLU, seq_len=1):
-        super().__init__()
+        super(Multimodal, self).__init__()
         self.Activation = activation
         self.vision = VisionModality(num_input_to_fc, self.Activation)
         if PARAM.SCENT_MODALITY:
