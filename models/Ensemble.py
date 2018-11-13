@@ -26,14 +26,14 @@ class Ensemble():
 		rewards = np.array(rewards_list)
 		episode_length = rewards.shape[0]
 		if rewards[:episode_length//2].sum()>2*rewards[episode_length//2:].sum() and rewards.mean()>2:		#First half > 2*Second half => depleted local rewards
-			print("Depleted local rewards... Moving away now... First half:{} Second half:{}".format(rewards[:episode_length//2].sum(),rewards[episode_length//2:].sum()))
+		#	print("Depleted local rewards... Moving away now... First half:{} Second half:{}".format(rewards[:episode_length//2].sum(),rewards[episode_length//2:].sum()))
 			self.up_shift()
 		else:
 			if rewards.mean()==0:
-				print("Zero Rewards :: Probably in the middle of nowhere !")
+			#	print("Zero Rewards :: Probably in the middle of nowhere !")
 				self.up_shift()
 			else:
-				print("Auto-Decay !")
+			#	print("Auto-Decay !")
 				self.down_shift()
 
 

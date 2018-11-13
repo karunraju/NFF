@@ -1,5 +1,5 @@
 BATCH_SIZE = 32
-LEARNING_RATE = 0.1
+LEARNING_RATE = 0.0001
 DISCOUNT_FACTOR = 0.9
 
 # Clone the Q network to target network for every C steps
@@ -24,7 +24,7 @@ A2C_SEQUENCE_LENGTH = 10
 AUX_TASK_BATCH_SIZE = 32
 VFR_LOSS_WEIGHT = 1
 RP_LOSS_WEIGHT = 1
-PC_LOSS_WEIGHT = 0
+PC_LOSS_WEIGHT = 0.1
 REWARD_SHAPING = False
 # HIND SIGHT EXPERIENCE REPLAY
 HER = True
@@ -33,8 +33,8 @@ HER_DECAY = 0.9
 
 
 STATE_SIZE = 4
-ENSEMBLE=2
-ACTION_REPEAT= [2,8]		#If ensemble is non-zero, actions repeat is expected to be a list
+ENSEMBLE=3
+ACTION_REPEAT= [2,4,6]		#If ensemble is non-zero, actions repeat is expected to be a list
 SWITCH_FREQUENCY = 20
 INCEPTION_FILTER = True
 SCENT_MODALITY = True
