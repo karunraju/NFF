@@ -5,7 +5,7 @@ import numpy as np
 
 class FeatureControl(nn.Module):
     def __init__(self, state_size, action_space, activation=nn.ReLU):
-        super().__init__()
+        super(FeatureControl, self).__init__()
         self.Activation = activation
         self.action_space = action_space
         self.input_linear = nn.Sequential(  nn.Linear(512, 1024),            self.Activation(),

@@ -6,7 +6,7 @@ import hyperparameters as PARAM
 
 class ScentModality(nn.Module):
     def __init__(self, activation=nn.ReLU):
-        super().__init__()
+        super(ScentModality, self).__init__()
         self.Activation = activation
         self.fc1  = nn.Sequential(nn.Linear(3, 4*3, bias=True), self.Activation(),
                                   nn.Linear(4*3, 8*3, bias=True), self.Activation())

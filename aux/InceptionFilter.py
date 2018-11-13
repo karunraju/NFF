@@ -6,7 +6,7 @@ import numpy as np
 
 class InceptionFilter(nn.Module):
     def __init__(self, activation=nn.ReLU):
-        super().__init__()
+        super(InceptionFilter, self).__init__()
         self.Activation = activation
         self.cnn1 = nn.Sequential(nn.Conv2d(3, 4, kernel_size=1, stride=1, padding=0, bias=True), self.Activation())
         self.cnn2 = nn.Sequential(nn.Conv2d(3, 4, kernel_size=1, stride=1, padding=0, bias=True), self.Activation(),

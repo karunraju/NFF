@@ -7,7 +7,7 @@ import hyperparameters as PARAM
 
 class VisionModality(nn.Module):
     def __init__(self, num_input_to_fc, activation=nn.ReLU):
-        super().__init__()
+        super(VisionModality, self).__init__()
         self.Activation = activation
         if PARAM.INCEPTION_FILTER:
           self.cnn1 = InceptionFilter(self.Activation)

@@ -11,7 +11,7 @@ except ImportError:
 
 class PixelControl(nn.Module):
     def __init__(self, state_size, action_space, activation=nn.ReLU):
-        super().__init__()
+        super(PixelControl, self).__init__()
         self.Activation = activation
         self.action_space=action_space
         if PARAM.bidirectional:

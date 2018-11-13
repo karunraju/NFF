@@ -5,7 +5,7 @@ import numpy as np
 
 class RewardPrediction(nn.Module):
     def __init__(self, num_input_to_fc, encoders, activation=nn.ReLU):
-        super().__init__()
+        super(RewardPrediction, self).__init__()
         self.Activation = activation
         self.encoders = encoders
         self.fc1  = nn.Sequential(nn.Linear(3*num_input_to_fc, 128, bias=True), self.Activation(),
