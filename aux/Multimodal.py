@@ -70,7 +70,7 @@ class Multimodal(nn.Module):
         return vision_lstm_output
 
 
-    def initializeWeights(self, function=nn.init.xavier_F.normalizeal_):
+    def initializeWeights(self, function=nn.init.xavier_normal_):
         for layer in self.layers:
             try:
                 layer.initializeWeights()
