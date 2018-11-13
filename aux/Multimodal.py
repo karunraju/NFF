@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch.nn.functional.normalize as norm
 import torch
 import time
 import numpy as np
@@ -49,7 +50,7 @@ class Multimodal(nn.Module):
         else:
           scent = self.scent(scent)
         state = self.fc1.forward(state.view(batch_size*sequence_length,-1)).view(batch_size,sequence_length,-1)
-        embedding = torch.cat([image,scent,state],dim=-1).permute(1,0,2)
+        embedding = torch.cat([norm(image, dim=-1),norm(scent, dim=-1),norm(state, dim=-1)],dim=-1).permute(1,0,2)
         lstm_ouput, hidden_state = self.lstm(embedding, hidden_state)
         if PARAM.MLP_ACROSS_TIME:
             x = self.fc2(lstm_ouput).view(batch_size*sequence_length, -1)
