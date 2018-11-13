@@ -14,11 +14,9 @@ from canonical_plot import plot
 
 class Agent_aux():
     
-  net = A2C(ReplayBuffer)
-  replay_buffer = net.get_replay_buffer
 
 
-  def __init__(self, render=False):
+  def __init__(self, render=False, network=None):
 
     # Create an instance of the network itself, as well as the memory.
     # Here is also a good place to set environmental parameters,
@@ -41,6 +39,8 @@ class Agent_aux():
     self.tmin = PARAM.A2C_EPISODE_SIZE_MIN
     self.seq_len = PARAM.A2C_SEQUENCE_LENGTH
     self.episode_buffer = [[]] * self.tmax
+    self.net = A2C(ReplayBuffer,3,network=network)
+    self.replay_buffer = self.net.get_replay_buffer
     self.net.add_episodic_buffer(self.episode_buffer)
 
 

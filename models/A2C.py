@@ -9,7 +9,7 @@ from aux.AuxNetwork import AuxNetwork
 from models.Ensemble import Ensemble
 
 class A2C():
-  def __init__(self, ReplayBuffer, action_space=3):
+  def __init__(self, ReplayBuffer, action_space=3, network=None):
     self.lr = PARAM.LEARNING_RATE
     self.N = PARAM.N
     self.gamma = PARAM.gamma
@@ -21,7 +21,7 @@ class A2C():
     self.gpu = torch.cuda.is_available()
 
     # A2C network
-    if PARAM.ENSEMBLE==0:
+    if PARAM.ENSEMBLE<1:
       self.A = AuxNetwork(state_size=PARAM.STATE_SIZE, action_space=action_space, seq_len=self.seq_len)
       # GPU availability
       if self.gpu:
@@ -33,7 +33,7 @@ class A2C():
       # Loss Function and Optimizer
       self.optimizer = optim.Adam(self.A.parameters(), lr=self.lr, weight_decay=1e-6)
     else:
-      self.Ensemble = Ensemble(PARAM.ENSEMBLE, action_space, self.seq_len, ReplayBuffer)
+      self.Ensemble = Ensemble(PARAM.ENSEMBLE, action_space, self.seq_len, ReplayBuffer, network)
       self.source_context()
 
     self.vfr_criterion = nn.MSELoss()           # Value Function Replay loss

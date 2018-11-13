@@ -8,12 +8,14 @@ import hyperparameters as PARAM
 from aux.AuxNetwork import AuxNetwork
 
 class Ensemble():
-	def __init__(self, size, action_space, seq_len, ReplayBuffer):
-		self.list_of_networks = [AuxNetwork(state_size=PARAM.STATE_SIZE, action_space=action_space, seq_len=seq_len) for i in range(size)]
-		self.gpu = torch.cuda.is_available()
-		if self.gpu:
-			print("Using GPU")
-			self.list_of_networks = [network.cuda() for network in self.list_of_networks]
+	def __init__(self, size, action_space, seq_len, ReplayBuffer, network):
+		self.list_of_networks = network
+		if network is None:
+			self.list_of_networks = [AuxNetwork(state_size=PARAM.STATE_SIZE, action_space=3, seq_len=PARAM.A2C_SEQUENCE_LENGTH) for i in range(PARAM.ENSEMBLE)]
+			self.gpu = torch.cuda.is_available()
+			if self.gpu:
+				print("Using GPU")
+				self.list_of_networks = [network.cuda() for network in self.list_of_networks]
 		else:
 			print("Using CPU")
 		self.list_of_optimizers = [optim.Adam(network.parameters(), lr=PARAM.LEARNING_RATE, weight_decay=1e-6) for network in self.list_of_networks]
@@ -70,8 +72,8 @@ class Ensemble():
 	def up_shift(self):
 		if self.current!=len(self.list_of_networks)-1:
 			self.current+=1
-		else:
-			print("WARNING: Ensemble MAX limit reached :: Cannot shift up", end='\r')
+	#	else:
+	#		print("WARNING: Ensemble MAX limit reached :: Cannot shift up", end='\r')
 
 	def down_shift(self):
 		if self.current!=0:
