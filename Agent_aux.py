@@ -13,6 +13,11 @@ from models.A2C import A2C
 from canonical_plot import plot
 
 class Agent_aux():
+    
+  net = A2C(ReplayBuffer)
+  replay_buffer = net.get_replay_buffer
+
+
   def __init__(self, render=False):
 
     # Create an instance of the network itself, as well as the memory.
@@ -36,8 +41,7 @@ class Agent_aux():
     self.tmin = PARAM.A2C_EPISODE_SIZE_MIN
     self.seq_len = PARAM.A2C_SEQUENCE_LENGTH
     self.episode_buffer = [[]] * self.tmax
-    self.net = A2C(self.episode_buffer, ReplayBuffer)
-    self.replay_buffer = self.net.get_replay_buffer
+    self.net.add_episodic_buffer(self.episode_buffer)
 
 
 
@@ -110,8 +114,9 @@ class Agent_aux():
       i += 1
       self.steps += 1
       self.cum_reward += reward
-      if self.steps % 100 == 0:
+      if self.steps % 100 == 0 and self.render==0:
         self.plot_train_stats()
+      
 
   def compute_psuedo_reward(self, vision):
     avg = np.mean(vision[3:8, 3:8, :], axis=2)

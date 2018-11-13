@@ -9,9 +9,8 @@ from aux.AuxNetwork import AuxNetwork
 from models.Ensemble import Ensemble
 
 class A2C():
-  def __init__(self, episode_buffer, ReplayBuffer, action_space=3):
+  def __init__(self, ReplayBuffer, action_space=3):
     self.lr = PARAM.LEARNING_RATE
-    self.episode_buffer = episode_buffer
     self.N = PARAM.N
     self.gamma = PARAM.gamma
     self.seq_len = PARAM.A2C_SEQUENCE_LENGTH
@@ -40,6 +39,9 @@ class A2C():
     self.vfr_criterion = nn.MSELoss()           # Value Function Replay loss
     self.rp_criterion = nn.CrossEntropyLoss()   # Reward Prediction loss
     self.pc_criterion = nn.MSELoss()            # Value Function Replay loss
+
+  def add_episodic_buffer(self, episode_buffer):
+    self.episode_buffer = episode_buffer
 
   def source_context(self):
     if PARAM.ENSEMBLE==0:

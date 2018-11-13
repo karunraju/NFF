@@ -29,7 +29,12 @@ class Ensemble():
 			print("Depleted local rewards... Moving away now... First half:{} Second half:{}".format(rewards[:episode_length//2].sum(),rewards[episode_length//2:].sum()))
 			self.up_shift()
 		else:
-			self.down_shift()
+			if rewards.mean()==0:
+				print("Zero Rewards :: Probably in the middle of nowhere !")
+				self.up_shift()
+			else:
+				print("Auto-Decay !")
+				self.down_shift()
 
 
 
