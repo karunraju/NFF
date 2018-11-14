@@ -7,6 +7,8 @@ def parse_arguments():
   parser.add_argument('--render', dest='render', type=int, default=0)
   parser.add_argument('--train', dest='train', type=int, default=1)
   parser.add_argument('--model', dest='model_file', type=str, help='Model file')
+  parser.add_argument('--random', dest='random', type=bool, default=False,
+                      help='Runs Random Method')
   parser.add_argument('--method', dest='method', type=str, default='DoubleQ',
                       help='Duel or DoubleQ')
   return parser.parse_args()
@@ -16,7 +18,10 @@ def main():
 
   #agent = Agent(render=args.render, method=args.method)
   agent = Agent_aux(render=args.render)
-  agent.train()
+  if args.random:
+    agent.run_random_policy()
+  else:
+    agent.train()
   #agent.test()
 
 if __name__ == '__main__':

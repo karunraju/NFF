@@ -13,8 +13,6 @@ from models.A2C import A2C
 from canonical_plot import plot
 
 class Agent_aux():
-    
-
 
   def __init__(self, render=False, network=None):
 
@@ -42,9 +40,6 @@ class Agent_aux():
     self.net = A2C(ReplayBuffer,3,network=network)
     self.replay_buffer = self.net.get_replay_buffer
     self.net.add_episodic_buffer(self.episode_buffer)
-
-
-
 
     cur_dir = os.getcwd()
     self.dump_dir = cur_dir + '/tmp_' + self.method + '_' + time.strftime("%Y%m%d-%H%M%S") + '/'
@@ -76,7 +71,7 @@ class Agent_aux():
       else:
         action = 0
 
-      next_state, reward, _, _ = self.env.step(action)      
+      next_state, reward, _, _ = self.env.step(action)
       rewards_list.append(reward)
       if ctr % PARAM.SWITCH_FREQUENCY==0:
         self.net.monitor(rewards_list)
@@ -116,7 +111,7 @@ class Agent_aux():
       self.cum_reward += reward
       if self.steps % 100 == 0 and self.render==0:
         self.plot_train_stats()
-      
+
 
   def compute_psuedo_reward(self, vision):
     avg = np.mean(vision[3:8, 3:8, :], axis=2)
@@ -213,3 +208,22 @@ class Agent_aux():
 
       cnt = cnt + 1
     return curr_state
+
+  def run_random_policy(self):
+    print('Running Random Policy.')
+    i = 0
+    while True:
+      #action = self.env.action_space.sample()
+      action = np.random.randint(3)
+      if i % 4 == 0:
+        next_state, reward, _, _ = self.env.step(action)
+      else:
+        next_state, reward, _, _ = self.env.step(0)
+      if self.render:
+        self.env.render()
+
+      i += 1
+
+      self.cum_reward += reward
+      if self.steps % 100 == 0:
+        self.plot_train_stats()
