@@ -223,7 +223,7 @@ class A2C():
     # Helper function to save your model / weights.
     if PARAM.ENSEMBLE!=0:
       self.Ensemble.save()
-      return 
+      return
     state = {
               'epoch': suffix,
               'state_dict': self.A.state_dict(),
@@ -236,9 +236,10 @@ class A2C():
     if PARAM.ENSEMBLE!=0:
       self.Ensemble.load()
       return
-    state = torch.load(model_file)
-    self.A.load_state_dict(state['state_dict'])
-    self.optimizer.load_state_dict(state['optimizer'])
+    #state = torch.load(model_file)
+    #self.A.load_state_dict(state['state_dict'])
+    #self.optimizer.load_state_dict(state['optimizer'])
+    self.A.load(model_file)
 
   def get_replay_buffer(self):
     if PARAM.ENSEMBLE!=0:

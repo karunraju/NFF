@@ -141,15 +141,22 @@ class Agent_aux():
       self.net.train(self.episode_number,episode_len)
       self.save_count += 1
 
-  def test(self, testing_steps=100, model_file=None):
+  def test(self, testing_steps=10000, model_file=None):
     if model_file is not None:
       self.net.load_model(model_file)
 
+    print('Testing!')
     self.net.set_eval()
     cum_reward = 0.0
     for i in range(testing_steps):
-      softmax, action = self.net.get_output(self.curr_state, i)
+      if i % self.net.get_action_repeat() == 0:
+        _, action = self.net.get_output(self.curr_state, i)
+      else:
+        action = 0
+
       _, reward, _, _ = self.test_env.step(action)
+      if self.render:
+        self.env.render()
       cum_reward += reward
 
     self.test_reward.append(cum_reward)
