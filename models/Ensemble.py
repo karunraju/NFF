@@ -23,7 +23,7 @@ class Ensemble():
 		self.list_of_action_repeats = PARAM.ACTION_REPEAT
 		self.current=len(self.list_of_networks)-1
 		self.update_context()
-		if hp.USE_ALTERNATE_SWITCHING_POLICY==True:
+		if PARAM.USE_ALTERNATE_SWITCHING_POLICY==True:
 			self.analyze_rewards = self.analyze_rewards_1
 
 	def analyze_rewards(self, rewards_list):
