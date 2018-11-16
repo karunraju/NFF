@@ -21,4 +21,5 @@
 *working_dir*
 cscope.files
 .pylintrc
+*.pth
 

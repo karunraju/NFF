@@ -35,7 +35,6 @@ STATE_SIZE = 4
 ENSEMBLE=3
 ACTION_REPEAT= [2,4,6]		#If ensemble is non-zero, actions repeat is expected to be a list
 SWITCH_FREQUENCY = 20
-USE_ALTERNATE_SWITCHING_POLICY=True
 INCEPTION_FILTER = True
 SCENT_MODALITY = True
 MLP_ACROSS_TIME = False

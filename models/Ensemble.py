@@ -23,6 +23,8 @@ class Ensemble():
 		self.list_of_action_repeats = PARAM.ACTION_REPEAT
 		self.current=len(self.list_of_networks)-1
 		self.update_context()
+		if hp.USE_ALTERNATE_SWITCHING_POLICY==True:
+			self.analyze_rewards = self.analyze_rewards_1
 
 	def analyze_rewards(self, rewards_list):
 		rewards = np.array(rewards_list)
@@ -39,7 +41,13 @@ class Ensemble():
 				self.down_shift()
 
 
-
+	def analyze_rewards_1(self, rewards_list):
+		rewards = np.array(rewards_list)
+		episode_length = rewards.shape[0]
+		if rewards.mean()==0:
+			self.up_shift()
+		else:
+			self.current=0
 
 
 

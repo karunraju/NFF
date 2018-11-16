@@ -20,6 +20,7 @@ A2C_SEQUENCE_LENGTH = 10
 
 
 
+
 AUX_TASK_BATCH_SIZE = 32
 VFR_LOSS_WEIGHT = 1
 RP_LOSS_WEIGHT = 1
@@ -35,10 +36,7 @@ STATE_SIZE = 4
 ENSEMBLE=3
 ACTION_REPEAT= [2,4,6]		#If ensemble is non-zero, actions repeat is expected to be a list
 SWITCH_FREQUENCY = 20
-USE_ALTERNATE_SWITCHING_POLICY=True
 INCEPTION_FILTER = True
 SCENT_MODALITY = True
 MLP_ACROSS_TIME = False
 bidirectional = True
-
-AGENTS=2
