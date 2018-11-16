@@ -18,13 +18,13 @@ def main():
   args = parse_arguments()
 
   #agent = Agent(render=args.render, method=args.method)
-  agent = Agent_aux(render=args.render)
+  agent = Agent_aux(render=args.render, test=(not args.train))
   if args.random:
     agent.run_random_policy()
   elif not args.train:
     if args.model_file is None:
       raise ValueError('Require model file')
-    agent.test(model_file=args.model_file)
+    agent.train(model_file=args.model_file)
   else:
     agent.train()
 

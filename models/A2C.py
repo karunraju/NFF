@@ -233,7 +233,8 @@ class A2C():
 
   def load_model(self, model_file):
     # Helper function to load an existing model.
-    if PARAM.ENSEMBLE!=0:
+    if PARAM.ENSEMBLE != 0:
+      print('Loading Ensemble models')
       self.Ensemble.load()
       return
     #state = torch.load(model_file)

@@ -14,7 +14,7 @@ from canonical_plot import plot
 
 class Agent_aux():
 
-  def __init__(self, render=False, network=None):
+  def __init__(self, render=False, network=None, test=False):
 
     # Create an instance of the network itself, as well as the memory.
     # Here is also a good place to set environmental parameters,
@@ -31,6 +31,9 @@ class Agent_aux():
     self.test_curr_state = None
     self.log_time = 100.0
     self.test_time = 1000.0
+    self.test = test
+    if self.test:
+      print('Testing!')
 
     self.burn_in = PARAM.BURN_IN
     self.tmax = PARAM.A2C_EPISODE_SIZE_MAX
@@ -51,7 +54,8 @@ class Agent_aux():
 
     self.curr_state = self.env.reset()
     self.tong_count = 0
-    self.curr_state = self.burn_in_memory(self.curr_state)
+    if not self.test:
+      self.curr_state = self.burn_in_memory(self.curr_state)
     self.train_rewards = []
     self.test_rewards = []
     self.steps = 0
@@ -131,14 +135,18 @@ class Agent_aux():
       self.episode_buffer[i] = (obs, action, (self.her_reward_buffer[i] + her_reward*her_decay)/100.0, next_obs, softmax, tong_count, val)
       her_reward = her_reward*her_decay + self.her_reward_buffer[i]
 
-  def train(self):
+  def train(self, model_file=None):
+    if model_file is not None:
+      self.net.load_model(model_file)
+
     for self.episode_number in range(self.training_time):
       self.net.set_train()
       episode_len = np.random.randint(self.tmin, self.tmax+1)
       self.generate_episode(episode_len, self.render)
-      if PARAM.HER:
-        self.hind_sight_experience_replay(episode_len)
-      self.net.train(self.episode_number,episode_len)
+      if not self.test:
+        if PARAM.HER:
+          self.hind_sight_experience_replay(episode_len)
+        self.net.train(self.episode_number,episode_len)
       self.save_count += 1
 
   def test(self, testing_steps=10000, model_file=None):
@@ -181,9 +189,10 @@ class Agent_aux():
     self.train_file.write('\n')
     self.train_file.flush()
     self.cum_reward = 0.0
-    if self.train_rewards[-1] > 0:
+    if not self.test and self.train_rewards[-1] > 0:
       self.net.A.save("checkpoint.pth")
       self.net.Ensemble.save()
+    if self.train_rewards[-1] > 0:
       print('[%d] Train Reward: %.4f' % (len(self.train_rewards), self.train_rewards[-1]))
     self.steps = 0
 
