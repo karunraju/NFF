@@ -8,7 +8,7 @@ def main(filename):
   rewards = [float(r) for r in rewards]
   rew = [0]*len(rewards)*100
   for i, r in enumerate(rewards):
-   rew[(i+1)*100 - 1] = r
+   rew[(i+1)*100 - 1] = r*100
 
   plot('./', rew)
 
