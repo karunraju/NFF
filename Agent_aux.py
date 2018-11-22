@@ -59,11 +59,9 @@ class Agent_aux():
     self.train_rewards = []
     self.test_rewards = []
     self.steps = 0
-    self.cum_reward = 0.0
     self.save_count = 0
 
   def generate_episode(self, tmax, render=False):
-    #for i in range(tmax):
     ctr, i = (0, 0)
     self.her_reward_buffer = np.zeros(tmax)
     her_reward = 0
@@ -112,10 +110,12 @@ class Agent_aux():
 
       i += 1
       self.steps += 1
-      self.cum_reward += reward
-      if self.steps % 100 == 0 and self.render==0:
+      self.train_rewards.append(reward)
+      if self.steps % 1000 == 0 and self.render==0:
         self.plot_train_stats()
 
+      if self.steps % 100 == 0 and sum(self.train_rewards[-100:]) > 0:
+        print('[%d] Train Reward: %.4f' % (len(self.train_rewards)/100, sum(self.train_rewards[-100:])))
 
   def compute_psuedo_reward(self, vision):
     avg = np.mean(vision[3:8, 3:8, :], axis=2)
@@ -183,12 +183,10 @@ class Agent_aux():
     plt.close()
 
   def plot_train_stats(self):
-    self.cum_reward = self.cum_reward/float(self.log_time)
-    self.train_rewards.append(self.cum_reward)
-    self.train_file.write(str(self.cum_reward))
-    self.train_file.write('\n')
+    for tr in self.train_rewards[-1000:]:
+      self.train_file.write(str(tr))
+      self.train_file.write('\n')
     self.train_file.flush()
-    self.cum_reward = 0.0
     if not self.test and self.train_rewards[-1] > 0:
       self.net.A.save("checkpoint.pth")
       self.net.Ensemble.save()
@@ -240,6 +238,6 @@ class Agent_aux():
 
       i += 1
 
-      self.cum_reward += reward
+      self.train_rewards.append(reward)
       if self.steps % 100 == 0:
         self.plot_train_stats()
