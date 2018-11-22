@@ -237,7 +237,6 @@ class Agent_aux():
         self.env.render()
 
       i += 1
-
       self.train_rewards.append(reward)
-      if self.steps % 100 == 0:
+      if self.steps % 1000 == 0:
         self.plot_train_stats()

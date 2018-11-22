@@ -1,5 +1,5 @@
 BATCH_SIZE = 32
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.001
 DISCOUNT_FACTOR = 0.9
 
 # Clone the Q network to target network for every C steps
@@ -27,7 +27,7 @@ PC_LOSS_WEIGHT = 0.1
 REWARD_SHAPING = False
 # HIND SIGHT EXPERIENCE REPLAY
 HER = True
-HER_DECAY = 0.9
+HER_DECAY = 0.25
 
 
 
