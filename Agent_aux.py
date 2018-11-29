@@ -63,11 +63,13 @@ class Agent_aux():
 
   def generate_episode(self, tmax, render=False):
     ctr, i = (0, 0)
-    self.her_reward_buffer = np.zeros(tmax)
+    #self.her_reward_buffer = np.zeros(tmax)
+    self.her_reward_buffer = np.zeros(self.tmax)
     her_reward = 0
     self.net.source_context()
     rewards_list = []
-    while ctr < tmax:
+    #while ctr < tmax:
+    while True:
       if i % self.net.get_action_repeat() == 0:
         val, softmax, action = self.net.get_output([ctr-1], seq_len=self.seq_len, batch_size=1)
       else:
@@ -116,6 +118,15 @@ class Agent_aux():
 
       if self.steps % 100 == 0 and sum(self.train_rewards[-100:]) > 0:
         print('[%d] Train Reward: %.4f' % (len(self.train_rewards)/100, sum(self.train_rewards[-100:])))
+        if len(self.train_rewards) % 50000:
+          print('Reducing Learning Rate')
+          self.net.reduce_learning_rate()
+
+      if reward == 100 or ctr == self.tmax:
+        print('Episode Len = %d' % ctr)
+        break
+
+    return ctr
 
   def compute_psuedo_reward(self, vision):
     avg = np.mean(vision[3:8, 3:8, :], axis=2)
@@ -132,7 +143,7 @@ class Agent_aux():
     her_decay = PARAM.HER_DECAY
     for i in range(episode_len - 1, -1, -1):
       obs, action, reward, next_obs, softmax, tong_count, val = self.episode_buffer[i]
-      self.episode_buffer[i] = (obs, action, (self.her_reward_buffer[i] + her_reward*her_decay)/100.0, next_obs, softmax, tong_count, val)
+      self.episode_buffer[i] = (obs, action, (self.her_reward_buffer[i] + her_reward*her_decay - 0.01*episode_len)/100.0, next_obs, softmax, tong_count, val)
       her_reward = her_reward*her_decay + self.her_reward_buffer[i]
 
   def train(self, model_file=None):
@@ -142,7 +153,7 @@ class Agent_aux():
     for self.episode_number in range(self.training_time):
       self.net.set_train()
       episode_len = np.random.randint(self.tmin, self.tmax+1)
-      self.generate_episode(episode_len, self.render)
+      episode_len = self.generate_episode(episode_len, self.render)
       if not self.test:
         if PARAM.HER:
           self.hind_sight_experience_replay(episode_len)

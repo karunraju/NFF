@@ -43,6 +43,15 @@ class A2C():
   def add_episodic_buffer(self, episode_buffer):
     self.episode_buffer = episode_buffer
 
+  def reduce_learning_rate(self):
+    if PARAM.ENSEMBLE >= 1:
+      self.Ensemble.reduce_learning_rate()
+      return
+
+    for pgroups in self.optimizer.param_groups:
+      pgroups['lr'] = pgroups['lr']/10.0
+
+
   def source_context(self):
     if PARAM.ENSEMBLE==0:
       return
