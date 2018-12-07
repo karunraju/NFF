@@ -1,14 +1,14 @@
 # NFF
 Navigate, Fetch and Find
 
-### Duel
+## Training
 ```bash
-$ python3 main.py --method Duel
+$ python3 main.py
 ```
 
-### Double DQN
+## Testing
 ```bash
-$ python3 main.py --method DoubleQ
+$ python3 main.py --train 0 </path/to/model_file>
 ```
 
 For rendering, add `--render 1`
