@@ -6,11 +6,11 @@ def main(filename):
     rewards = f.read().splitlines()
 
   rewards = [float(r) for r in rewards]
-  rew = [0]*len(rewards)*100
-  for i, r in enumerate(rewards):
-   rew[(i+1)*100 - 1] = r*100
+  #rew = [0]*len(rewards)*100
+  #for i, r in enumerate(rewards):
+  # rew[(i+1)*100 - 1] = r*100
 
-  plot('./', rew)
+  plot('./', rewards[:50000])
 
 if __name__ == '__main__':
   main(sys.argv[1])
